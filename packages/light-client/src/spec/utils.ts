@@ -142,7 +142,10 @@ export function upgradeLightClientHeader(
       if (ForkSeq[targetFork] <= ForkSeq.electra) break;
 
     case ForkName.fulu:
-      throw Error("Not Implemented");
+      // No changes to LightClientHeader in Fulu
+
+      // Break if no further upgrades is required else fall through
+      if (ForkSeq[targetFork] <= ForkSeq.fulu) break;
   }
   return upgradedHeader;
 }
@@ -165,15 +168,14 @@ export function isValidLightClientHeader(config: ChainForkConfig, header: LightC
     );
   }
 
-  if (epoch < config.DENEB_FORK_EPOCH) {
-    if (
-      ((header as LightClientHeader<ForkName.deneb>).execution.blobGasUsed &&
-        (header as LightClientHeader<ForkName.deneb>).execution.blobGasUsed !== BigInt(0)) ||
+  if (
+    epoch < config.DENEB_FORK_EPOCH &&
+    (((header as LightClientHeader<ForkName.deneb>).execution.blobGasUsed &&
+      (header as LightClientHeader<ForkName.deneb>).execution.blobGasUsed !== BigInt(0)) ||
       ((header as LightClientHeader<ForkName.deneb>).execution.excessBlobGas &&
-        (header as LightClientHeader<ForkName.deneb>).execution.excessBlobGas !== BigInt(0))
-    ) {
-      return false;
-    }
+        (header as LightClientHeader<ForkName.deneb>).execution.excessBlobGas !== BigInt(0)))
+  ) {
+    return false;
   }
 
   return isValidMerkleBranch(

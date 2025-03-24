@@ -29,7 +29,7 @@ describe("UpgradeLightClientHeader", () => {
       bellatrix: ssz.altair.LightClientHeader.defaultValue(),
       deneb: ssz.deneb.LightClientHeader.defaultValue(),
       electra: ssz.deneb.LightClientHeader.defaultValue(),
-      fulu: ssz.fulu.LightClientHeader.defaultValue(),
+      fulu: ssz.deneb.LightClientHeader.defaultValue(),
     };
 
     testSlots = {
@@ -39,8 +39,7 @@ describe("UpgradeLightClientHeader", () => {
       capella: 25,
       deneb: 33,
       electra: 41,
-      // TODO @matthewkeil need to implement this
-      fulu: 0,
+      fulu: 54,
     };
   });
 
