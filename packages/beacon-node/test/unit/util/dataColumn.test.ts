@@ -1,17 +1,79 @@
 import {fromHexString} from "@chainsafe/ssz";
 import {createBeaconConfig, createChainForkConfig, defaultChainConfig} from "@lodestar/config";
-import {NUMBER_OF_COLUMNS} from "@lodestar/params";
+import {NUMBER_OF_COLUMNS, NUMBER_OF_CUSTODY_GROUPS} from "@lodestar/params";
 import {ssz} from "@lodestar/types";
 import {bigIntToBytes} from "@lodestar/utils";
+import {BeaconStateAllForks} from "@lodestar/state-transition";
+import {ChainForkConfig} from "@lodestar/config";
+import {ValidatorIndex} from "@lodestar/types";
 /* eslint-disable @typescript-eslint/naming-convention */
-import {afterEach, beforeAll, describe, expect, it} from "vitest";
+import {afterEach, beforeAll, beforeEach, describe, expect, it} from "vitest";
 
 import {validateDataColumnsSidecars} from "../../../src/chain/validation/dataColumnSidecar.js";
 import {computeDataColumnSidecars} from "../../../src/util/blobs.js";
-import {CustodyConfig, getDataColumns} from "../../../src/util/dataColumns.js";
+import {CustodyConfig, getDataColumns, getValidatorsCustodyRequirement} from "../../../src/util/dataColumns.js";
 import {ckzg, initCKZG, loadEthereumTrustedSetup} from "../../../src/util/kzg.js";
 import {getMockedBeaconChain} from "../../mocks/mockedBeaconChain.js";
 import {generateRandomBlob, transactionForKzgCommitment} from "../../utils/kzg.js";
+
+describe("getValidatorsCustodyRequirement", () => {
+  let state: BeaconStateAllForks;
+  let config: ChainForkConfig;
+
+  beforeEach(() => {
+    // Create a mock state with validators
+    state = {
+      validators: {
+        get: (index: ValidatorIndex) => ({
+          effectiveBalance: 32, // 32 ETH
+        }),
+      },
+    } as unknown as BeaconStateAllForks;
+
+    // Create a proper config using createChainForkConfig
+    config = createChainForkConfig({
+      ...defaultChainConfig,
+      ALTAIR_FORK_EPOCH: 0,
+      BELLATRIX_FORK_EPOCH: 0,
+      CAPELLA_FORK_EPOCH: 0,
+      DENEB_FORK_EPOCH: 0,
+      ELECTRA_FORK_EPOCH: 0,
+      FULU_FORK_EPOCH: Infinity,
+      BALANCE_PER_ADDITIONAL_CUSTODY_GROUP: 32, // 32 ETH per group
+      VALIDATOR_CUSTODY_REQUIREMENT: 8,
+      CUSTODY_REQUIREMENT: 4,
+    });
+
+    // Create a mock nodeId for CustodyConfig
+    const mockNodeId = new Uint8Array(32);
+  });
+
+  it("should return minimum requirement when total balance is below the balance per additional custody group", () => {
+    const validatorIndices: ValidatorIndex[] = [0, 1]; // 2 validators with 32 ETH each = 64 ETH total
+    const result = getValidatorsCustodyRequirement(state, validatorIndices, config);
+    expect(result).toBe(config.VALIDATOR_CUSTODY_REQUIREMENT);
+  });
+
+  it("should calculate correct number of groups based on total balance", () => {
+    // Create a state with 10 validators with 32 ETH each = 320 ETH total
+    const validatorIndices: ValidatorIndex[] = Array.from({length: 10}, (_, i) => i as ValidatorIndex);
+    const result = getValidatorsCustodyRequirement(state, validatorIndices, config);
+    expect(result).toBe(10);
+  });
+
+  it("should cap at maximum number of custody groups", () => {
+    // Create a state with enough validators to exceed max groups
+    const validatorIndices: ValidatorIndex[] = Array.from({length: NUMBER_OF_CUSTODY_GROUPS + 1}, (_, i) => i as ValidatorIndex);
+    const result = getValidatorsCustodyRequirement(state, validatorIndices, config);
+    expect(result).toBe(NUMBER_OF_CUSTODY_GROUPS);
+  });
+
+  it("should handle zero validators", () => {
+    const validatorIndices: ValidatorIndex[] = [];
+    const result = getValidatorsCustodyRequirement(state, validatorIndices, config);
+    expect(result).toBe(config.CUSTODY_REQUIREMENT);
+  });
+});
 
 describe("getCustodyConfig", () => {
   it("validateDataColumnsSidecars", () => {
