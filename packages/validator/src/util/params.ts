@@ -256,5 +256,7 @@ function getSpecCriticalParams(localConfig: ChainConfig): Record<keyof ConfigWit
     SAMPLES_PER_SLOT: fuluForkRelevant,
     CUSTODY_REQUIREMENT: fuluForkRelevant,
     NODE_CUSTODY_REQUIREMENT: false,
+    VALIDATOR_CUSTODY_REQUIREMENT: fuluForkRelevant,
+    BALANCE_PER_ADDITIONAL_CUSTODY_GROUP: fuluForkRelevant,
   };
 }
