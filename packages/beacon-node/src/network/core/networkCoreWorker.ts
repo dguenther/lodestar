@@ -24,6 +24,8 @@ import {
 import {getNetworkCoreWorkerMetrics} from "./metrics.js";
 import {NetworkCore} from "./networkCore.js";
 import {NetworkWorkerApi, NetworkWorkerData} from "./types.js";
+import { CustodyConfig } from "../../util/dataColumns.js";
+import { computeNodeId } from "../subnets/index.js";
 
 // Cloned data from instantiation
 const workerData = worker.workerData as NetworkWorkerData;
@@ -33,6 +35,7 @@ if (!parentPort) throw Error("parentPort must be defined");
 
 const config = createBeaconConfig(chainConfigFromJson(workerData.chainConfigJson), workerData.genesisValidatorsRoot);
 const peerId = await createFromProtobuf(workerData.peerIdProto);
+const custodyConfig = new CustodyConfig(computeNodeId(peerId), config);
 
 // TODO: Pass options from main thread for logging
 // TODO: Logging won't be visible in file loggers
@@ -101,6 +104,7 @@ const core = await NetworkCore.init({
   getReqRespHandler: (method) => (req, peerId) =>
     reqRespBridgeRespCaller.getAsyncIterable({method, req, peerId: peerIdToString(peerId)}),
   activeValidatorCount: workerData.activeValidatorCount,
+  custodyConfig,
   initialStatus: workerData.initialStatus,
 });
 
