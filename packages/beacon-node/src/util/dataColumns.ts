@@ -6,37 +6,39 @@ import {ssz} from "@lodestar/types";
 import {bytesToBigInt} from "@lodestar/utils";
 import {NodeId} from "../network/subnets/index.js";
 
-export type CustodyConfig = {
+export class CustodyConfig {
   custodyColumnsIndex: Uint8Array;
   custodyColumnsLen: number;
   custodyColumns: ColumnIndex[];
   sampledColumns: ColumnIndex[];
+
+  constructor(nodeId: NodeId, config: ChainForkConfig) {
+    this.custodyColumns = getDataColumns(nodeId, Math.max(config.CUSTODY_REQUIREMENT, config.NODE_CUSTODY_REQUIREMENT));
+    this.sampledColumns = getDataColumns(
+      nodeId,
+      Math.max(config.CUSTODY_REQUIREMENT, config.NODE_CUSTODY_REQUIREMENT, config.SAMPLES_PER_SLOT)
+    );
+    const custodyMeta = this.getCustodyColumnsMeta(this.custodyColumns);
+    this.custodyColumnsIndex = custodyMeta.custodyColumnsIndex;
+    this.custodyColumnsLen = custodyMeta.custodyColumnsLen;
+  }
+
+  private getCustodyColumnsMeta(custodyColumns: ColumnIndex[]): {
+    custodyColumnsIndex: Uint8Array;
+    custodyColumnsLen: number;
+  } {
+    // custody columns map which column maps to which index in the array of columns custodied
+    // with zero representing it is not custodied
+    const custodyColumnsIndex = new Uint8Array(NUMBER_OF_COLUMNS);
+    let custodyAtIndex = 1;
+    for (const columnIndex of custodyColumns) {
+      custodyColumnsIndex[columnIndex] = custodyAtIndex;
+      custodyAtIndex++;
+    }
+    return {custodyColumnsIndex, custodyColumnsLen: custodyColumns.length};
+  }
 };
 
-export function getCustodyConfig(nodeId: NodeId, config: ChainForkConfig): CustodyConfig {
-  const custodyColumns = getDataColumns(nodeId, Math.max(config.CUSTODY_REQUIREMENT, config.NODE_CUSTODY_REQUIREMENT));
-  const sampledColumns = getDataColumns(
-    nodeId,
-    Math.max(config.CUSTODY_REQUIREMENT, config.NODE_CUSTODY_REQUIREMENT, config.SAMPLES_PER_SLOT)
-  );
-  const custodyMeta = getCustodyColumnsMeta(custodyColumns);
-  return {...custodyMeta, custodyColumns, sampledColumns};
-}
-
-function getCustodyColumnsMeta(custodyColumns: ColumnIndex[]): {
-  custodyColumnsIndex: Uint8Array;
-  custodyColumnsLen: number;
-} {
-  // custody columns map which column maps to which index in the array of columns custodied
-  // with zero representing it is not custodied
-  const custodyColumnsIndex = new Uint8Array(NUMBER_OF_COLUMNS);
-  let custodyAtIndex = 1;
-  for (const columnIndex of custodyColumns) {
-    custodyColumnsIndex[columnIndex] = custodyAtIndex;
-    custodyAtIndex++;
-  }
-  return {custodyColumnsIndex, custodyColumnsLen: custodyColumns.length};
-}
 
 /**
  * Converts a custody group to an array of column indices.  Should be 1-1 as long there are 128

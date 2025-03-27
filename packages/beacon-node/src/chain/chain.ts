@@ -49,7 +49,7 @@ import {Metrics} from "../metrics/index.js";
 import {NodeId} from "../network/subnets/interface.js";
 import {BufferPool} from "../util/bufferPool.js";
 import {Clock, ClockEvent, IClock} from "../util/clock.js";
-import {getCustodyConfig} from "../util/dataColumns.js";
+import {CustodyConfig} from "../util/dataColumns.js";
 import {ensureDir, writeIfNotExist} from "../util/file.js";
 import {isOptimisticBlock} from "../util/forkChoice.js";
 import {SerializedCache} from "../util/serializedCache.js";
@@ -253,7 +253,7 @@ export class BeaconChain implements IBeaconChain {
     this.seenAggregatedAttestations = new SeenAggregatedAttestations(metrics);
     this.seenContributionAndProof = new SeenContributionAndProof(metrics);
     this.seenAttestationDatas = new SeenAttestationDatas(metrics, this.opts?.attDataCacheSlotDistance);
-    const custodyConfig = getCustodyConfig(nodeId, config);
+    const custodyConfig = new CustodyConfig(nodeId, config);
     this.seenGossipBlockInput = new SeenGossipBlockInput(custodyConfig);
 
     this.beaconProposerCache = new BeaconProposerCache(opts);
