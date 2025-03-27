@@ -120,7 +120,7 @@ export class Network implements INetwork {
     this.peerId = modules.peerId;
     this.nodeId = modules.nodeId;
     this.config = modules.config;
-    this.custodyConfig = new CustodyConfig(modules.nodeId, modules.config);
+    this.custodyConfig = modules.chain.custodyConfig;
     this.logger = modules.logger;
     this.chain = modules.chain;
     this.clock = modules.chain.clock;
@@ -193,6 +193,7 @@ export class Network implements INetwork {
           metricsRegistry: metrics ? new RegistryMetricCreator() : null,
           initialStatus,
           activeValidatorCount,
+          custodyConfig: chain.custodyConfig,
         });
 
     const networkProcessor = new NetworkProcessor(

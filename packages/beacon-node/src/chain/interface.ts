@@ -61,6 +61,7 @@ import {SeenAggregatedAttestations} from "./seenCache/seenAggregateAndProof.js";
 import {SeenAttestationDatas} from "./seenCache/seenAttestationData.js";
 import {SeenBlockAttesters} from "./seenCache/seenBlockAttesters.js";
 import {ShufflingCache} from "./shufflingCache.js";
+import {CustodyConfig} from "../util/dataColumns.js";
 
 export {BlockType, type AssembledBlockType};
 export {type ProposerPreparationData};
@@ -112,6 +113,9 @@ export interface IBeaconChain {
   readonly syncCommitteeMessagePool: SyncCommitteeMessagePool;
   readonly syncContributionAndProofPool: SyncContributionAndProofPool;
   readonly opPool: OpPool;
+
+  // Data column custody config
+  readonly custodyConfig: CustodyConfig;
 
   // Gossip seen cache
   readonly seenAttesters: SeenAttesters;

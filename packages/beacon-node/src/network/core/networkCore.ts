@@ -34,6 +34,7 @@ import {SyncnetsService} from "../subnets/syncnetsService.js";
 import {getConnectionsMap} from "../util.js";
 import {NetworkCoreMetrics, createNetworkCoreMetrics} from "./metrics.js";
 import {INetworkCore, MultiaddrStr, PeerIdStr} from "./types.js";
+import {CustodyConfig} from "../../util/dataColumns.js";
 
 type Mods = {
   libp2p: Libp2p;
@@ -63,6 +64,7 @@ export type BaseNetworkInit = {
   events: NetworkEventBus;
   getReqRespHandler: GetReqRespHandlerFn;
   activeValidatorCount: number;
+  custodyConfig: CustodyConfig;
   initialStatus: phase0.Status;
 };
 
@@ -134,6 +136,7 @@ export class NetworkCore implements INetworkCore {
     clock,
     getReqRespHandler,
     activeValidatorCount,
+    custodyConfig,
     initialStatus,
   }: BaseNetworkInit): Promise<NetworkCore> {
     const libp2p = await createNodeJsLibp2p(peerId, opts, {
@@ -213,6 +216,7 @@ export class NetworkCore implements INetworkCore {
         events,
         peersData,
         statusCache,
+        custodyConfig,
       },
       opts
     );

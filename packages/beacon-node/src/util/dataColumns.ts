@@ -22,7 +22,13 @@ export class CustodyConfig {
    */
   private advertisedCustodyGroupCount: number;
 
+  private config: ChainForkConfig;
+
+  private nodeId: NodeId;
+
   constructor(nodeId: NodeId, config: ChainForkConfig) {
+    this.config = config;
+    this.nodeId = nodeId;
     this.targetCustodyGroupCount = Math.max(config.CUSTODY_REQUIREMENT, config.NODE_CUSTODY_REQUIREMENT);
     this.advertisedCustodyGroupCount = this.targetCustodyGroupCount;
     this.custodyColumns = getDataColumns(nodeId, this.targetCustodyGroupCount);
@@ -48,6 +54,20 @@ export class CustodyConfig {
       custodyAtIndex++;
     }
     return {custodyColumnsIndex, custodyColumnsLen: custodyColumns.length};
+  }
+
+  getSampledGroupCount(): number {
+    // TODO: Porting this over to match current behavior, but I think this incorrectly mixes units:
+    // SAMPLES_PER_SLOT is in columns, and CUSTODY_GROUP_COUNT is in groups
+    return Math.max(this.getTargetCustodyGroupCount(), this.config.SAMPLES_PER_SLOT);
+  }
+
+  getSampledColumns(): ColumnIndex[] {
+    return getDataColumns(this.nodeId, this.getSampledGroupCount());
+  }
+
+  getSampledGroups(): CustodyIndex[] {
+    return getCustodyGroups(this.nodeId, this.getSampledGroupCount());
   }
 
   /**

@@ -143,6 +143,9 @@ export class BeaconChain implements IBeaconChain {
   readonly syncContributionAndProofPool = new SyncContributionAndProofPool();
   readonly opPool = new OpPool();
 
+  // Data column custody config
+  readonly custodyConfig: CustodyConfig;
+
   // Gossip seen cache
   readonly seenAttesters = new SeenAttesters();
   readonly seenAggregators = new SeenAggregators();
@@ -250,11 +253,12 @@ export class BeaconChain implements IBeaconChain {
       this.opts?.preaggregateSlotDistance
     );
 
+    this.custodyConfig = new CustodyConfig(nodeId, config);
+
     this.seenAggregatedAttestations = new SeenAggregatedAttestations(metrics);
     this.seenContributionAndProof = new SeenContributionAndProof(metrics);
     this.seenAttestationDatas = new SeenAttestationDatas(metrics, this.opts?.attDataCacheSlotDistance);
-    const custodyConfig = new CustodyConfig(nodeId, config);
-    this.seenGossipBlockInput = new SeenGossipBlockInput(custodyConfig);
+    this.seenGossipBlockInput = new SeenGossipBlockInput(this.custodyConfig);
 
     this.beaconProposerCache = new BeaconProposerCache(opts);
     this.checkpointBalancesCache = new CheckpointBalancesCache();
