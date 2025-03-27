@@ -12,8 +12,20 @@ export class CustodyConfig {
   custodyColumns: ColumnIndex[];
   sampledColumns: ColumnIndex[];
 
+  /**
+   * The number of custody groups the node should subscribe to
+   */
+  private targetCustodyGroupCount: number;
+
+  /**
+   * The number of custody groups the node will advertise to the network
+   */
+  private advertisedCustodyGroupCount: number;
+
   constructor(nodeId: NodeId, config: ChainForkConfig) {
-    this.custodyColumns = getDataColumns(nodeId, Math.max(config.CUSTODY_REQUIREMENT, config.NODE_CUSTODY_REQUIREMENT));
+    this.targetCustodyGroupCount = Math.max(config.CUSTODY_REQUIREMENT, config.NODE_CUSTODY_REQUIREMENT);
+    this.advertisedCustodyGroupCount = this.targetCustodyGroupCount;
+    this.custodyColumns = getDataColumns(nodeId, this.targetCustodyGroupCount);
     this.sampledColumns = getDataColumns(
       nodeId,
       Math.max(config.CUSTODY_REQUIREMENT, config.NODE_CUSTODY_REQUIREMENT, config.SAMPLES_PER_SLOT)
@@ -37,8 +49,21 @@ export class CustodyConfig {
     }
     return {custodyColumnsIndex, custodyColumnsLen: custodyColumns.length};
   }
-};
 
+  /**
+   * The number of custody groups the node should subscribe to
+   */
+  getTargetCustodyGroupCount(): number {
+    return this.targetCustodyGroupCount;
+  }
+
+  /**
+   * The number of custody groups the node will advertise to the network
+   */
+  getAdvertisedCustodyGroupCount(): number {
+    return this.advertisedCustodyGroupCount;
+  }
+}
 
 /**
  * Converts a custody group to an array of column indices.  Should be 1-1 as long there are 128
