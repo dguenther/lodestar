@@ -3,7 +3,7 @@ import {createBeaconConfig, createChainForkConfig, defaultChainConfig} from "@lo
 import {NUMBER_OF_COLUMNS, NUMBER_OF_CUSTODY_GROUPS} from "@lodestar/params";
 import {ssz} from "@lodestar/types";
 import {bigIntToBytes} from "@lodestar/utils";
-import {BeaconStateAllForks} from "@lodestar/state-transition";
+import {BeaconStateAllForks, CachedBeaconStateAllForks} from "@lodestar/state-transition";
 import {ChainForkConfig} from "@lodestar/config";
 import {ValidatorIndex} from "@lodestar/types";
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -17,18 +17,16 @@ import {getMockedBeaconChain} from "../../mocks/mockedBeaconChain.js";
 import {generateRandomBlob, transactionForKzgCommitment} from "../../utils/kzg.js";
 
 describe("getValidatorsCustodyRequirement", () => {
-  let state: BeaconStateAllForks;
+  let state: CachedBeaconStateAllForks;
   let config: ChainForkConfig;
 
   beforeEach(() => {
-    // Create a mock state with validators
+    // Create a mock state with validators effective balance increments
     state = {
-      validators: {
-        get: (index: ValidatorIndex) => ({
-          effectiveBalance: 32, // 32 ETH
-        }),
+      epochCtx: {
+        effectiveBalanceIncrements: new Uint8Array(NUMBER_OF_CUSTODY_GROUPS + 1).fill(32), // Each validator has 32 ETH (1 increment)
       },
-    } as unknown as BeaconStateAllForks;
+    } as unknown as CachedBeaconStateAllForks;
 
     // Create a proper config using createChainForkConfig
     config = createChainForkConfig({
@@ -39,13 +37,10 @@ describe("getValidatorsCustodyRequirement", () => {
       DENEB_FORK_EPOCH: 0,
       ELECTRA_FORK_EPOCH: 0,
       FULU_FORK_EPOCH: Infinity,
-      BALANCE_PER_ADDITIONAL_CUSTODY_GROUP: 32, // 32 ETH per group
+      BALANCE_PER_ADDITIONAL_CUSTODY_GROUP: 32000000000, // 32 ETH per group
       VALIDATOR_CUSTODY_REQUIREMENT: 8,
       CUSTODY_REQUIREMENT: 4,
     });
-
-    // Create a mock nodeId for CustodyConfig
-    const mockNodeId = new Uint8Array(32);
   });
 
   it("should return minimum requirement when total balance is below the balance per additional custody group", () => {

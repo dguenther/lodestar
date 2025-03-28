@@ -1,11 +1,11 @@
 import {digest} from "@chainsafe/as-sha256";
 import {ChainForkConfig} from "@lodestar/config";
-import {NUMBER_OF_COLUMNS, NUMBER_OF_CUSTODY_GROUPS} from "@lodestar/params";
+import {EFFECTIVE_BALANCE_INCREMENT, NUMBER_OF_COLUMNS, NUMBER_OF_CUSTODY_GROUPS} from "@lodestar/params";
 import {ColumnIndex, CustodyIndex, ValidatorIndex} from "@lodestar/types";
 import {ssz} from "@lodestar/types";
 import {bytesToBigInt} from "@lodestar/utils";
 import {NodeId} from "../network/subnets/index.js";
-import { BeaconStateAllForks } from "@lodestar/state-transition";
+import { CachedBeaconStateAllForks } from "@lodestar/state-transition";
 
 export class CustodyConfig {
   custodyColumnsIndex: Uint8Array;
@@ -84,6 +84,10 @@ export class CustodyConfig {
   getAdvertisedCustodyGroupCount(): number {
     return this.advertisedCustodyGroupCount;
   }
+
+  updateCustodyRequirement(state: CachedBeaconStateAllForks, validatorIndices: ValidatorIndex[]) {
+    this.targetCustodyGroupCount = getValidatorsCustodyRequirement(state, validatorIndices, this.config);
+  }
 }
 
 /**
@@ -93,7 +97,7 @@ export class CustodyConfig {
  * https://github.com/ethereum/consensus-specs/blob/dev/specs/fulu/validator.md#validator-custody
  */
 export function getValidatorsCustodyRequirement(
-  state: BeaconStateAllForks,
+  state: CachedBeaconStateAllForks,
   validatorIndices: ValidatorIndex[],
   config: ChainForkConfig
 ): number {
@@ -102,10 +106,10 @@ export function getValidatorsCustodyRequirement(
   }
 
   const totalNodeEffectiveBalance = validatorIndices.reduce((total, validatorIndex) => {
-    return total + state.validators.get(validatorIndex).effectiveBalance;
+    return total + state.epochCtx.effectiveBalanceIncrements[validatorIndex] * EFFECTIVE_BALANCE_INCREMENT;
   }, 0);
 
-  const count = totalNodeEffectiveBalance / config.BALANCE_PER_ADDITIONAL_CUSTODY_GROUP;
+  const count = Math.floor(totalNodeEffectiveBalance / config.BALANCE_PER_ADDITIONAL_CUSTODY_GROUP);
   return Math.min(Math.max(count, config.VALIDATOR_CUSTODY_REQUIREMENT), NUMBER_OF_CUSTODY_GROUPS);
 }
 

@@ -1192,6 +1192,9 @@ export class BeaconChain implements IBeaconChain {
 
     if (headState) {
       this.opPool.pruneAll(headBlock, headState);
+      // Update custody requirement based on finalized state
+      // TODO: Using empty array since beacon node doesn't maintain a list of attached validators
+      this.custodyConfig.updateCustodyRequirement(headState, []);
     }
 
     if (headState === null) {
