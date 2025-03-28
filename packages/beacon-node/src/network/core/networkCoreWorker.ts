@@ -107,6 +107,7 @@ const core = await NetworkCore.init({
   custodyConfig,
   initialStatus: workerData.initialStatus,
   initialSamplingGroupCount: workerData.initialSamplingGroupCount,
+  initialAdvertisedGroupCount: workerData.initialAdvertisedGroupCount,
 });
 
 wireEventsOnWorkerThread<NetworkEventData>(
@@ -144,6 +145,7 @@ const libp2pWorkerApi: NetworkWorkerApi = {
   publishGossip: (topic, data, opts) => core.publishGossip(topic, data, opts),
 
   setSamplingGroupCount: (count) => core.setSamplingGroupCount(count),
+  setAdvertisedGroupCount: (count) => core.setAdvertisedGroupCount(count),
 
   // Debug
 

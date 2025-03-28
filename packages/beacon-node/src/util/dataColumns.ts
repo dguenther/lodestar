@@ -11,10 +11,12 @@ import StrictEventEmitter from "strict-event-emitter-types";
 
 export enum CustodyEvent {
   samplingGroupCountUpdated = "samplingGroupCountUpdated",
+  advertisedGroupCountUpdated = "advertisedGroupCountUpdated",
 }
 
 export type ICustodyEvents = {
   [CustodyEvent.samplingGroupCountUpdated]: (samplingGroupCount: number) => void;
+  [CustodyEvent.advertisedGroupCountUpdated]: (advertisedGroupCount: number) => void;
 };
 
 export class CustodyEventEmitter extends (EventEmitter as {new (): StrictEventEmitter<EventEmitter, ICustodyEvents>}) {}
@@ -101,10 +103,20 @@ export class CustodyConfig {
 
   updateCustodyRequirement(state: CachedBeaconStateAllForks, validatorIndices: ValidatorIndex[]) {
     const groupCount = this.getSampledGroupCount();
+    const advertisedGroupCount = this.getAdvertisedCustodyGroupCount();
+
     this.targetCustodyGroupCount = getValidatorsCustodyRequirement(state, validatorIndices, this.config);
+
     const newCount = this.getSampledGroupCount();
+    const newAdvertisedCount = this.getAdvertisedCustodyGroupCount();
+
     if (groupCount !== newCount) {
       this.emitter.emit(CustodyEvent.samplingGroupCountUpdated, newCount);
+    }
+    // TODO: If target group count increases, we should wait to update the advertised group until we've
+    // backfilled the new groups.
+    if (advertisedGroupCount !== newAdvertisedCount) {
+      this.emitter.emit(CustodyEvent.advertisedGroupCountUpdated, newAdvertisedCount);
     }
   }
 }

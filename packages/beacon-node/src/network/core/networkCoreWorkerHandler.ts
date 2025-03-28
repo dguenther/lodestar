@@ -39,6 +39,7 @@ export type WorkerNetworkCoreOpts = NetworkOptions & {
   genesisTime: number;
   initialStatus: phase0.Status;
   initialSamplingGroupCount: number;
+  initialAdvertisedGroupCount: number;
 };
 
 export type WorkerNetworkCoreInitModules = {
@@ -113,6 +114,7 @@ export class WorkerNetworkCore implements INetworkCore {
       metricsEnabled,
       initialStatus,
       initialSamplingGroupCount,
+      initialAdvertisedGroupCount,
     } = opts;
 
     const workerData: NetworkWorkerData = {
@@ -126,6 +128,7 @@ export class WorkerNetworkCore implements INetworkCore {
       genesisTime,
       initialStatus,
       initialSamplingGroupCount,
+      initialAdvertisedGroupCount,
       activeValidatorCount,
       loggerOpts: modules.logger.toOpts(),
     };
@@ -231,6 +234,9 @@ export class WorkerNetworkCore implements INetworkCore {
 
   setSamplingGroupCount(count: number): Promise<void> {
     return this.getApi().setSamplingGroupCount(count);
+  }
+  setAdvertisedGroupCount(count: number): Promise<void> {
+    return this.getApi().setAdvertisedGroupCount(count);
   }
 
   // Debug

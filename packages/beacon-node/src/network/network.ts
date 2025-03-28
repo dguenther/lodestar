@@ -140,6 +140,7 @@ export class Network implements INetwork {
       this.onLightClientOptimisticUpdate(data)
     );
     this.chain.custodyConfig.emitter.on(CustodyEvent.samplingGroupCountUpdated, this.onSamplingGroupCountUpdated);
+    this.chain.custodyConfig.emitter.on(CustodyEvent.advertisedGroupCountUpdated, this.onAdvertisedGroupCountUpdated);
   }
 
   static async init({
@@ -161,6 +162,7 @@ export class Network implements INetwork {
     const activeValidatorCount = chain.getHeadState().epochCtx.currentShuffling.activeIndices.length;
     const initialStatus = chain.getStatus();
     const initialSamplingGroupCount = chain.custodyConfig.getSampledGroupCount();
+    const initialAdvertisedGroupCount = chain.custodyConfig.getAdvertisedCustodyGroupCount();
 
     if (opts.useWorker) {
       logger.info("running libp2p instance in worker thread");
@@ -176,6 +178,7 @@ export class Network implements INetwork {
             genesisTime: chain.genesisTime,
             initialStatus,
             initialSamplingGroupCount,
+            initialAdvertisedGroupCount,
           },
           config,
           peerId,
@@ -196,6 +199,7 @@ export class Network implements INetwork {
           metricsRegistry: metrics ? new RegistryMetricCreator() : null,
           initialStatus,
           initialSamplingGroupCount,
+          initialAdvertisedGroupCount,
           activeValidatorCount,
           custodyConfig: chain.custodyConfig,
         });
@@ -716,5 +720,9 @@ export class Network implements INetwork {
 
   private onSamplingGroupCountUpdated = (count: number): void => {
     this.core.setSamplingGroupCount(count);
+  };
+
+  private onAdvertisedGroupCountUpdated = (count: number): void => {
+    this.core.setAdvertisedGroupCount(count);
   };
 }

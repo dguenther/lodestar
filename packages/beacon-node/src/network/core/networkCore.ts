@@ -67,6 +67,7 @@ export type BaseNetworkInit = {
   custodyConfig: CustodyConfig;
   initialStatus: phase0.Status;
   initialSamplingGroupCount: number;
+  initialAdvertisedGroupCount: number;
 };
 
 /**
@@ -139,6 +140,7 @@ export class NetworkCore implements INetworkCore {
     activeValidatorCount,
     initialStatus,
     initialSamplingGroupCount,
+    initialAdvertisedGroupCount,
   }: BaseNetworkInit): Promise<NetworkCore> {
     const libp2p = await createNodeJsLibp2p(peerId, opts, {
       peerStoreDir,
@@ -158,7 +160,7 @@ export class NetworkCore implements INetworkCore {
     const onMetadataSetValue = function onMetadataSetValue(key: string, value: Uint8Array): void {
       discv5?.setEnrValue(key, value).catch((e) => logger.error("error on setEnrValue", {key}, e));
     };
-    const metadata = new MetadataController({}, {config, onSetValue: onMetadataSetValue});
+    const metadata = new MetadataController({}, {config, onSetValue: onMetadataSetValue, initialAdvertisedGroupCount});
 
     const reqResp = new ReqRespBeaconNode(
       {
@@ -349,6 +351,10 @@ export class NetworkCore implements INetworkCore {
 
   async setSamplingGroupCount(count: number): Promise<void> {
     this.peerManager.setSamplingGroupCount(count);
+  }
+
+  async setAdvertisedGroupCount(count: number): Promise<void> {
+    this.metadata.cgc = count;
   }
 
   // REST API queries

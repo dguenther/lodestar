@@ -55,7 +55,7 @@ export interface INetworkCore extends INetworkCorePublic {
   updateStatus(status: phase0.Status): Promise<void>;
 
   setSamplingGroupCount(count: number): Promise<void>;
-
+  setAdvertisedGroupCount(count: number): Promise<void>;
   /** Opens stream to handle ReqResp outgoing request */
   sendReqRespRequest(data: OutgoingRequestArgs): AsyncIterable<ResponseIncoming>;
   /** Publish gossip message to peers */
@@ -81,6 +81,7 @@ export type NetworkWorkerData = {
   activeValidatorCount: number;
   initialStatus: phase0.Status;
   initialSamplingGroupCount: number;
+  initialAdvertisedGroupCount: number;
   peerIdProto: Uint8Array;
   localMultiaddrs: string[];
   metricsEnabled: boolean;

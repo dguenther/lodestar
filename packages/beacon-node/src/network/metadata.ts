@@ -26,6 +26,7 @@ export type MetadataOpts = {
 export type MetadataModules = {
   config: BeaconConfig;
   onSetValue: (key: string, value: Uint8Array) => void;
+  initialAdvertisedGroupCount: number;
 };
 
 /**
@@ -43,8 +44,7 @@ export class MetadataController {
     this.onSetValue = modules.onSetValue;
     this._metadata = opts.metadata ?? {
       ...ssz.fulu.Metadata.defaultValue(),
-      // TODO: @matthewkeil check if this needs to be updated for custody groups
-      cgc: Math.max(this.config.CUSTODY_REQUIREMENT, this.config.NODE_CUSTODY_REQUIREMENT),
+      cgc: modules.initialAdvertisedGroupCount,
     };
   }
 
