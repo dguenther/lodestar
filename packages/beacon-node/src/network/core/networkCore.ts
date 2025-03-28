@@ -66,6 +66,7 @@ export type BaseNetworkInit = {
   activeValidatorCount: number;
   custodyConfig: CustodyConfig;
   initialStatus: phase0.Status;
+  initialSamplingGroupCount: number;
 };
 
 /**
@@ -136,8 +137,8 @@ export class NetworkCore implements INetworkCore {
     clock,
     getReqRespHandler,
     activeValidatorCount,
-    custodyConfig,
     initialStatus,
+    initialSamplingGroupCount,
   }: BaseNetworkInit): Promise<NetworkCore> {
     const libp2p = await createNodeJsLibp2p(peerId, opts, {
       peerStoreDir,
@@ -216,7 +217,7 @@ export class NetworkCore implements INetworkCore {
         events,
         peersData,
         statusCache,
-        custodyConfig,
+        initialSamplingGroupCount,
       },
       opts
     );
@@ -344,6 +345,10 @@ export class NetworkCore implements INetworkCore {
   async publishGossip(topic: string, data: Uint8Array, opts?: PublishOpts | undefined): Promise<number> {
     const {recipients} = await this.gossip.publish(topic, data, opts);
     return recipients.length;
+  }
+
+  async setSamplingGroupCount(count: number): Promise<void> {
+    this.peerManager.setSamplingGroupCount(count);
   }
 
   // REST API queries

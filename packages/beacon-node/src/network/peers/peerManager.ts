@@ -3,11 +3,11 @@ import {Connection, PeerId} from "@libp2p/interface";
 import {BeaconConfig} from "@lodestar/config";
 import {LoggerNode} from "@lodestar/logger/node";
 import {ForkSeq, SYNC_COMMITTEE_SUBNET_COUNT} from "@lodestar/params";
-import {CustodyIndex, Metadata, fulu, phase0} from "@lodestar/types";
+import {ColumnIndex, CustodyIndex, Metadata, fulu, phase0} from "@lodestar/types";
 import {withTimeout} from "@lodestar/utils";
 import {GOODBYE_KNOWN_CODES, GoodByeReasonCode, Libp2pEvent} from "../../constants/index.js";
 import {IClock} from "../../util/clock.js";
-import {CustodyConfig, getCustodyGroups, getDataColumns} from "../../util/dataColumns.js";
+import {getCustodyGroups, getDataColumns} from "../../util/dataColumns.js";
 import {NetworkCoreMetrics} from "../core/metrics.js";
 import {LodestarDiscv5Opts} from "../discv5/types.js";
 import {INetworkEventBus, NetworkEvent, NetworkEventData} from "../events.js";
@@ -110,7 +110,7 @@ export type PeerManagerModules = {
   events: INetworkEventBus;
   peersData: PeersData;
   statusCache: StatusCache;
-  custodyConfig: CustodyConfig;
+  initialSamplingGroupCount: number;
 };
 
 export type PeerRequestedSubnetType = SubnetType | "column";
@@ -147,7 +147,9 @@ export class PeerManager {
   private readonly discovery: PeerDiscovery | null;
   private readonly networkEventBus: INetworkEventBus;
   private readonly statusCache: StatusCache;
-  private readonly custodyConfig: CustodyConfig;
+
+  private sampledColumns: ColumnIndex[];
+  private sampledGroups: CustodyIndex[];
 
   // A single map of connected peers with all necessary data to handle PINGs, STATUS, and metrics
   private connectedPeers: Map<PeerIdStr, PeerData>;
@@ -164,7 +166,6 @@ export class PeerManager {
     this.attnetsService = modules.attnetsService;
     this.syncnetsService = modules.syncnetsService;
     this.statusCache = modules.statusCache;
-    this.custodyConfig = modules.custodyConfig;
     this.clock = modules.clock;
     this.config = modules.config;
     this.peerRpcScores = modules.peerRpcScores;
@@ -183,6 +184,9 @@ export class PeerManager {
     this.libp2p.services.components.events.addEventListener(Libp2pEvent.connectionOpen, this.onLibp2pPeerConnect);
     this.libp2p.services.components.events.addEventListener(Libp2pEvent.connectionClose, this.onLibp2pPeerDisconnect);
     this.networkEventBus.on(NetworkEvent.reqRespRequest, this.onRequest);
+
+    this.sampledGroups = getCustodyGroups(this.nodeId, modules.initialSamplingGroupCount);
+    this.sampledColumns = getDataColumns(this.nodeId, modules.initialSamplingGroupCount);
 
     // On start-up will connected to existing peers in libp2p.peerStore, same as autoDial behaviour
     this.heartbeat();
@@ -221,6 +225,12 @@ export class PeerManager {
     );
     this.networkEventBus.off(NetworkEvent.reqRespRequest, this.onRequest);
     for (const interval of this.intervals) clearInterval(interval);
+  }
+
+  setSamplingGroupCount(count: number): void {
+    this.sampledGroups = getCustodyGroups(this.nodeId, count);
+    this.sampledColumns = getDataColumns(this.nodeId, count);
+    this.discovery?.setSamplingGroupCount(count);
   }
 
   /**
@@ -424,10 +434,12 @@ export class PeerManager {
       const dataColumns = getDataColumns(nodeId, peerCustodyGroupCount);
       // on metadata, we should have custodyGroupss
       const peerCustodyGroups = peerData?.metadata?.custodyGroups ?? getCustodyGroups(nodeId, peerCustodyGroupCount);
-      const sampleSubnets = this.custodyConfig.getSampledColumns();
 
-      const matchingSubnetsNum = sampleSubnets.reduce((acc, elem) => acc + (dataColumns.includes(elem) ? 1 : 0), 0);
-      const hasAllColumns = matchingSubnetsNum === sampleSubnets.length;
+      const matchingSubnetsNum = this.sampledColumns.reduce(
+        (acc, elem) => acc + (dataColumns.includes(elem) ? 1 : 0),
+        0
+      );
+      const hasAllColumns = matchingSubnetsNum === this.sampledColumns.length;
       const hasMinCustodyMatchingColumns = matchingSubnetsNum >= this.config.CUSTODY_REQUIREMENT;
       const clientAgent = peerData?.agentClient ?? ClientKind.Unknown;
 
@@ -440,7 +452,7 @@ export class PeerManager {
         dataColumns: dataColumns.join(" "),
         matchingSubnetsNum,
         peerCustodyGroups: peerCustodyGroups.join(" "),
-        mySampleSubnets: sampleSubnets.join(" "),
+        mySampleSubnets: this.sampledColumns.join(" "),
         clientAgent,
       });
 
@@ -557,7 +569,7 @@ export class PeerManager {
       this.attnetsService.getActiveSubnets(),
       this.syncnetsService.getActiveSubnets(),
       // ignore samplingGroups for pre-fulu forks
-      forkSeq >= ForkSeq.fulu ? this.custodyConfig.getSampledGroups() : undefined,
+      forkSeq >= ForkSeq.fulu ? this.sampledGroups : undefined,
       this.opts,
       this.metrics
     );

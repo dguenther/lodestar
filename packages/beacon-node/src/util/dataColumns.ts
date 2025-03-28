@@ -5,13 +5,27 @@ import {ColumnIndex, CustodyIndex, ValidatorIndex} from "@lodestar/types";
 import {ssz} from "@lodestar/types";
 import {bytesToBigInt} from "@lodestar/utils";
 import {NodeId} from "../network/subnets/index.js";
-import { CachedBeaconStateAllForks } from "@lodestar/state-transition";
+import {CachedBeaconStateAllForks} from "@lodestar/state-transition";
+import EventEmitter from "node:events";
+import StrictEventEmitter from "strict-event-emitter-types";
+
+export enum CustodyEvent {
+  samplingGroupCountUpdated = "samplingGroupCountUpdated",
+}
+
+export type ICustodyEvents = {
+  [CustodyEvent.samplingGroupCountUpdated]: (samplingGroupCount: number) => void;
+};
+
+export class CustodyEventEmitter extends (EventEmitter as {new (): StrictEventEmitter<EventEmitter, ICustodyEvents>}) {}
 
 export class CustodyConfig {
   custodyColumnsIndex: Uint8Array;
   custodyColumnsLen: number;
   custodyColumns: ColumnIndex[];
   sampledColumns: ColumnIndex[];
+
+  readonly emitter = new CustodyEventEmitter();
 
   /**
    * The number of custody groups the node should subscribe to
@@ -86,7 +100,12 @@ export class CustodyConfig {
   }
 
   updateCustodyRequirement(state: CachedBeaconStateAllForks, validatorIndices: ValidatorIndex[]) {
+    const groupCount = this.getSampledGroupCount();
     this.targetCustodyGroupCount = getValidatorsCustodyRequirement(state, validatorIndices, this.config);
+    const newCount = this.getSampledGroupCount();
+    if (groupCount !== newCount) {
+      this.emitter.emit(CustodyEvent.samplingGroupCountUpdated, newCount);
+    }
   }
 }
 
@@ -112,7 +131,6 @@ export function getValidatorsCustodyRequirement(
   const count = Math.floor(totalNodeEffectiveBalance / config.BALANCE_PER_ADDITIONAL_CUSTODY_GROUP);
   return Math.min(Math.max(count, config.VALIDATOR_CUSTODY_REQUIREMENT), NUMBER_OF_CUSTODY_GROUPS);
 }
-
 
 /**
  * Converts a custody group to an array of column indices.  Should be 1-1 as long there are 128

@@ -38,6 +38,7 @@ export type WorkerNetworkCoreOpts = NetworkOptions & {
   activeValidatorCount: number;
   genesisTime: number;
   initialStatus: phase0.Status;
+  initialSamplingGroupCount: number;
 };
 
 export type WorkerNetworkCoreInitModules = {
@@ -104,7 +105,15 @@ export class WorkerNetworkCore implements INetworkCore {
 
   static async init(modules: WorkerNetworkCoreInitModules): Promise<WorkerNetworkCore> {
     const {opts, config, peerId} = modules;
-    const {genesisTime, peerStoreDir, activeValidatorCount, localMultiaddrs, metricsEnabled, initialStatus} = opts;
+    const {
+      genesisTime,
+      peerStoreDir,
+      activeValidatorCount,
+      localMultiaddrs,
+      metricsEnabled,
+      initialStatus,
+      initialSamplingGroupCount,
+    } = opts;
 
     const workerData: NetworkWorkerData = {
       opts,
@@ -116,6 +125,7 @@ export class WorkerNetworkCore implements INetworkCore {
       peerStoreDir,
       genesisTime,
       initialStatus,
+      initialSamplingGroupCount,
       activeValidatorCount,
       loggerOpts: modules.logger.toOpts(),
     };
@@ -215,6 +225,12 @@ export class WorkerNetworkCore implements INetworkCore {
   }
   publishGossip(topic: string, data: Uint8Array, opts?: PublishOpts): Promise<number> {
     return this.getApi().publishGossip(topic, data, opts);
+  }
+
+  // Custody
+
+  setSamplingGroupCount(count: number): Promise<void> {
+    return this.getApi().setSamplingGroupCount(count);
   }
 
   // Debug

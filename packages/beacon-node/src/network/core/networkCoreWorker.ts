@@ -24,8 +24,8 @@ import {
 import {getNetworkCoreWorkerMetrics} from "./metrics.js";
 import {NetworkCore} from "./networkCore.js";
 import {NetworkWorkerApi, NetworkWorkerData} from "./types.js";
-import { CustodyConfig } from "../../util/dataColumns.js";
-import { computeNodeId } from "../subnets/index.js";
+import {CustodyConfig} from "../../util/dataColumns.js";
+import {computeNodeId} from "../subnets/index.js";
 
 // Cloned data from instantiation
 const workerData = worker.workerData as NetworkWorkerData;
@@ -106,6 +106,7 @@ const core = await NetworkCore.init({
   activeValidatorCount: workerData.activeValidatorCount,
   custodyConfig,
   initialStatus: workerData.initialStatus,
+  initialSamplingGroupCount: workerData.initialSamplingGroupCount,
 });
 
 wireEventsOnWorkerThread<NetworkEventData>(
@@ -141,6 +142,8 @@ const libp2pWorkerApi: NetworkWorkerApi = {
 
   // sendReqRespRequest - handled via events with AsyncIterableBridgeHandler
   publishGossip: (topic, data, opts) => core.publishGossip(topic, data, opts),
+
+  setSamplingGroupCount: (count) => core.setSamplingGroupCount(count),
 
   // Debug
 

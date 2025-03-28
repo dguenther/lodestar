@@ -32,7 +32,7 @@ import {IBeaconChain} from "../chain/index.js";
 import {IBeaconDb} from "../db/interface.js";
 import {Metrics, RegistryMetricCreator} from "../metrics/index.js";
 import {IClock} from "../util/clock.js";
-import {CustodyConfig} from "../util/dataColumns.js";
+import {CustodyConfig, CustodyEvent} from "../util/dataColumns.js";
 import {PeerIdStr, peerIdToString} from "../util/peerId.js";
 import {BlobSidecarsByRootRequest} from "../util/types.js";
 import {INetworkCore, NetworkCore, WorkerNetworkCore} from "./core/index.js";
@@ -139,6 +139,7 @@ export class Network implements INetwork {
     this.chain.emitter.on(routes.events.EventType.lightClientOptimisticUpdate, ({data}) =>
       this.onLightClientOptimisticUpdate(data)
     );
+    this.chain.custodyConfig.emitter.on(CustodyEvent.samplingGroupCountUpdated, this.onSamplingGroupCountUpdated);
   }
 
   static async init({
@@ -159,6 +160,7 @@ export class Network implements INetwork {
 
     const activeValidatorCount = chain.getHeadState().epochCtx.currentShuffling.activeIndices.length;
     const initialStatus = chain.getStatus();
+    const initialSamplingGroupCount = chain.custodyConfig.getSampledGroupCount();
 
     if (opts.useWorker) {
       logger.info("running libp2p instance in worker thread");
@@ -173,6 +175,7 @@ export class Network implements INetwork {
             activeValidatorCount,
             genesisTime: chain.genesisTime,
             initialStatus,
+            initialSamplingGroupCount,
           },
           config,
           peerId,
@@ -192,6 +195,7 @@ export class Network implements INetwork {
           getReqRespHandler,
           metricsRegistry: metrics ? new RegistryMetricCreator() : null,
           initialStatus,
+          initialSamplingGroupCount,
           activeValidatorCount,
           custodyConfig: chain.custodyConfig,
         });
@@ -233,6 +237,7 @@ export class Network implements INetwork {
     this.chain.emitter.off(routes.events.EventType.head, this.onHead);
     this.chain.emitter.off(routes.events.EventType.lightClientFinalityUpdate, this.onLightClientFinalityUpdate);
     this.chain.emitter.off(routes.events.EventType.lightClientOptimisticUpdate, this.onLightClientOptimisticUpdate);
+    this.chain.custodyConfig.emitter.off(CustodyEvent.samplingGroupCountUpdated, this.onSamplingGroupCountUpdated);
     await this.core.close();
     this.logger.debug("network core closed");
   }
@@ -707,5 +712,9 @@ export class Network implements INetwork {
 
   private onPeerDisconnected = (data: NetworkEventData[NetworkEvent.peerDisconnected]): void => {
     this.connectedPeers.delete(data.peer);
+  };
+
+  private onSamplingGroupCountUpdated = (count: number): void => {
+    this.core.setSamplingGroupCount(count);
   };
 }

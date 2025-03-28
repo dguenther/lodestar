@@ -9,7 +9,7 @@ import {pruneSetToMax, sleep} from "@lodestar/utils";
 import {ColumnIndex} from "@lodestar/types";
 import {bytesToInt} from "@lodestar/utils";
 import {Multiaddr} from "@multiformats/multiaddr";
-import {CustodyConfig, getCustodyGroups, getDataColumns} from "../../util/dataColumns.js";
+import {getCustodyGroups, getDataColumns} from "../../util/dataColumns.js";
 import {NetworkCoreMetrics} from "../core/metrics.js";
 import {Discv5Worker} from "../discv5/index.js";
 import {LodestarDiscv5Opts} from "../discv5/types.js";
@@ -46,7 +46,7 @@ export type PeerDiscoveryModules = {
   metrics: NetworkCoreMetrics | null;
   logger: LoggerNode;
   config: BeaconConfig;
-  custodyConfig: CustodyConfig;
+  initialSamplingGroupCount: number;
 };
 
 type PeerIdStr = string;
@@ -110,11 +110,11 @@ export class PeerDiscovery {
   private readonly clock: IClock;
   // TODO-das: remove nodeId and sampleSubnets once we remove onlyConnect* flag
   private nodeId: NodeId;
+  private sampledColumns: ColumnIndex[];
   private peerRpcScores: IPeerRpcScoreStore;
   private metrics: NetworkCoreMetrics | null;
   private logger: LoggerNode;
   private config: BeaconConfig;
-  private custodyConfig: CustodyConfig;
   private cachedENRs = new Map<PeerIdStr, CachedENR>();
   private randomNodeQuery: QueryStatus = {code: QueryStatusCode.NotActive};
   private peersToConnect = 0;
@@ -134,7 +134,7 @@ export class PeerDiscovery {
   private onlyConnectToMinimalCustodyOverlapNodes: boolean | undefined = false;
 
   constructor(modules: PeerDiscoveryModules, opts: PeerDiscoveryOpts, discv5: Discv5Worker) {
-    const {libp2p, clock, peerRpcScores, metrics, logger, config, nodeId, custodyConfig} = modules;
+    const {libp2p, clock, peerRpcScores, metrics, logger, config, nodeId, initialSamplingGroupCount} = modules;
     this.libp2p = libp2p;
     this.clock = clock;
     this.peerRpcScores = peerRpcScores;
@@ -144,7 +144,7 @@ export class PeerDiscovery {
     this.discv5 = discv5;
     // TODO-das: remove
     this.nodeId = nodeId;
-    this.custodyConfig = custodyConfig;
+    this.sampledColumns = getDataColumns(nodeId, initialSamplingGroupCount);
     this.groupRequests = new Map();
 
     this.discv5StartMs = 0;
@@ -337,6 +337,10 @@ export class PeerDiscovery {
     });
   }
 
+  setSamplingGroupCount(count: number): void {
+    this.sampledColumns = getCustodyGroups(this.nodeId, count);
+  }
+
   /**
    * Request discv5 to find peers if there is no query in progress
    */
@@ -505,13 +509,11 @@ export class PeerDiscovery {
       const peerCustodyGroupCount = peer.peerCustodyGroups.length;
       const peerCustodyColumns = getDataColumns(nodeId, peerCustodyGroupCount);
 
-      const sampleSubnets = this.custodyConfig.getSampledColumns();
-
-      const matchingSubnetsNum = sampleSubnets.reduce(
+      const matchingSubnetsNum = this.sampledColumns.reduce(
         (acc, elem) => acc + (peerCustodyColumns.includes(elem) ? 1 : 0),
         0
       );
-      const hasAllColumns = matchingSubnetsNum === sampleSubnets.length;
+      const hasAllColumns = matchingSubnetsNum === this.sampledColumns.length;
       const hasMinCustodyMatchingColumns = matchingSubnetsNum >= Math.max(this.config.CUSTODY_REQUIREMENT);
 
       this.logger.warn("peerCustodyColumns", {
@@ -520,7 +522,7 @@ export class PeerDiscovery {
         hasAllColumns,
         peerCustodyGroupCount,
         peerCustodyColumns: peerCustodyColumns.join(" "),
-        sampleSubnets: sampleSubnets.join(" "),
+        sampleSubnets: this.sampledColumns.join(" "),
         nodeId: `${toHexString(this.nodeId)}`,
       });
       if (this.onlyConnectToBiggerDataNodes && !hasAllColumns) {

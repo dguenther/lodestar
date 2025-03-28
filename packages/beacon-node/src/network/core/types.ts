@@ -54,6 +54,8 @@ export interface INetworkCore extends INetworkCorePublic {
   /** Chain must push status updates to the network core */
   updateStatus(status: phase0.Status): Promise<void>;
 
+  setSamplingGroupCount(count: number): Promise<void>;
+
   /** Opens stream to handle ReqResp outgoing request */
   sendReqRespRequest(data: OutgoingRequestArgs): AsyncIterable<ResponseIncoming>;
   /** Publish gossip message to peers */
@@ -78,6 +80,7 @@ export type NetworkWorkerData = {
   genesisTime: number;
   activeValidatorCount: number;
   initialStatus: phase0.Status;
+  initialSamplingGroupCount: number;
   peerIdProto: Uint8Array;
   localMultiaddrs: string[];
   metricsEnabled: boolean;
@@ -100,6 +103,8 @@ export type NetworkWorkerApi = INetworkCorePublic & {
   getConnectedPeers(): Promise<PeerIdStr[]>;
   getConnectedPeerCount(): Promise<number>;
   updateStatus(status: phase0.Status): Promise<void>;
+
+  setSamplingGroupCount(count: number): Promise<void>;
 
   // sendReqRespRequest - implemented via events
   publishGossip(topic: string, data: Uint8Array, opts?: PublishOpts): Promise<number>;
