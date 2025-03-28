@@ -62,6 +62,7 @@ import {SeenAttestationDatas} from "./seenCache/seenAttestationData.js";
 import {SeenBlockAttesters} from "./seenCache/seenBlockAttesters.js";
 import {ShufflingCache} from "./shufflingCache.js";
 import {CustodyConfig} from "../util/dataColumns.js";
+import {LocalValidatorRegistry} from "../node/localValidatorRegistry.js";
 
 export {BlockType, type AssembledBlockType};
 export {type ProposerPreparationData};
@@ -92,6 +93,7 @@ export interface IBeaconChain {
   readonly logger: Logger;
   readonly metrics: Metrics | null;
   readonly bufferPool: BufferPool | null;
+  readonly localValidatorRegistry: LocalValidatorRegistry;
 
   /** The initial slot that the chain is started with */
   readonly anchorStateLatestBlockSlot: Slot;
