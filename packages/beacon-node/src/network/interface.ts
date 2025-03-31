@@ -33,7 +33,6 @@ import {
 } from "@lodestar/types";
 import type {Datastore} from "interface-datastore";
 import {Libp2p as ILibp2p} from "libp2p";
-import {CustodyConfig} from "../util/dataColumns.js";
 import {PeerIdStr} from "../util/peerId.js";
 import {BlobSidecarsByRootRequest} from "../util/types.js";
 import {INetworkCorePublic} from "./core/types.js";
@@ -42,6 +41,7 @@ import {GossipType} from "./gossip/interface.js";
 import {PeerAction} from "./peers/index.js";
 import {PendingGossipsubMessage} from "./processor/types.js";
 import {NodeId} from "./subnets/interface.js";
+import {CustodyConfig} from "../util/dataColumns.js";
 
 export type WithOptionalBytes<T> = {data: T; bytes?: Uint8Array | null};
 
