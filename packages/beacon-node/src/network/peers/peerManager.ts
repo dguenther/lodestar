@@ -563,7 +563,7 @@ export class PeerManager {
       // Collect subnets which we need peers for in the current slot
       this.attnetsService.getActiveSubnets(),
       this.syncnetsService.getActiveSubnets(),
-      // ignore samplingGroups for pre-fulu forks
+      // ignore sampleSubnets for pre-fulu forks
       forkSeq >= ForkSeq.fulu ? this.sampleSubnets : undefined,
       this.opts,
       this.metrics
