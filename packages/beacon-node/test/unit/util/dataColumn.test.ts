@@ -58,7 +58,10 @@ describe("getValidatorsCustodyRequirement", () => {
 
   it("should cap at maximum number of custody groups", () => {
     // Create a state with enough validators to exceed max groups
-    const validatorIndices: ValidatorIndex[] = Array.from({length: NUMBER_OF_CUSTODY_GROUPS + 1}, (_, i) => i as ValidatorIndex);
+    const validatorIndices: ValidatorIndex[] = Array.from(
+      {length: NUMBER_OF_CUSTODY_GROUPS + 1},
+      (_, i) => i as ValidatorIndex
+    );
     const result = getValidatorsCustodyRequirement(state, validatorIndices, config);
     expect(result).toBe(NUMBER_OF_CUSTODY_GROUPS);
   });
@@ -82,9 +85,10 @@ describe("getCustodyConfig", () => {
     });
     const nodeId = fromHexString("cdbee32dc3c50e9711d22be5565c7e44ff6108af663b2dc5abd2df573d2fa83f");
     const custodyConfig = new CustodyConfig(nodeId, config);
-    const {custodyColumnsLen, custodyColumns, sampledColumns} = custodyConfig;
+    const {custodyColumns} = custodyConfig.getCustodyColumnsWithIndex();
+    const sampledColumns = custodyConfig.getSampledColumns();
 
-    expect(custodyColumnsLen).toEqual(4);
+    expect(custodyColumns.length).toEqual(4);
     expect(custodyColumns).toEqual([2, 80, 89, 118]);
     expect(sampledColumns.length).toEqual(8);
     const custodyPresentInSample = custodyColumns.reduce((acc, elem) => acc && sampledColumns.includes(elem), true);
