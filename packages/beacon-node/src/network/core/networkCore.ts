@@ -64,7 +64,6 @@ export type BaseNetworkInit = {
   events: NetworkEventBus;
   getReqRespHandler: GetReqRespHandlerFn;
   activeValidatorCount: number;
-  custodyConfig: CustodyConfig;
   initialStatus: phase0.Status;
   initialSamplingGroupCount: number;
   initialAdvertisedGroupCount: number;
