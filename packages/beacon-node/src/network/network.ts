@@ -242,6 +242,7 @@ export class Network implements INetwork {
     this.chain.emitter.off(routes.events.EventType.lightClientFinalityUpdate, this.onLightClientFinalityUpdate);
     this.chain.emitter.off(routes.events.EventType.lightClientOptimisticUpdate, this.onLightClientOptimisticUpdate);
     this.chain.custodyConfig.emitter.off(CustodyEvent.samplingGroupCountUpdated, this.onSamplingGroupCountUpdated);
+    this.chain.custodyConfig.emitter.off(CustodyEvent.advertisedGroupCountUpdated, this.onAdvertisedGroupCountUpdated);
     await this.core.close();
     this.logger.debug("network core closed");
   }

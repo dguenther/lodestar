@@ -106,6 +106,7 @@ export type NetworkWorkerApi = INetworkCorePublic & {
   updateStatus(status: phase0.Status): Promise<void>;
 
   setSamplingGroupCount(count: number): Promise<void>;
+  setAdvertisedGroupCount(count: number): Promise<void>;
 
   // sendReqRespRequest - implemented via events
   publishGossip(topic: string, data: Uint8Array, opts?: PublishOpts): Promise<number>;
