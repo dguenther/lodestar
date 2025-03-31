@@ -247,15 +247,13 @@ export class SeenGossipBlockInput {
           };
         }
 
+        const sampledColumns = this.custodyConfig.getSampledColumns();
         const sampledIndexesPresent =
-          dataColumnsCache.size >= this.custodyConfig.sampledColumns.length &&
-          this.custodyConfig.sampledColumns.reduce(
-            (acc, columnIndex) => acc && dataColumnsCache.has(columnIndex),
-            true
-          );
+          dataColumnsCache.size >= sampledColumns.length &&
+          sampledColumns.reduce((acc, columnIndex) => acc && dataColumnsCache.has(columnIndex), true);
 
         if (sampledIndexesPresent) {
-          const allDataColumns = getBlockInputDataColumns(dataColumnsCache, this.custodyConfig.sampledColumns);
+          const allDataColumns = getBlockInputDataColumns(dataColumnsCache, sampledColumns);
           metrics?.syncUnknownBlock.resolveAvailabilitySource.inc({source: BlockInputAvailabilitySource.GOSSIP});
           const {dataColumns} = allDataColumns;
           const blockData: BlockInputDataColumns = {
@@ -274,7 +272,7 @@ export class SeenGossipBlockInput {
             blockInputMeta: {
               pending: null,
               haveColumns: dataColumns.length,
-              expectedColumns: this.custodyConfig.sampledColumns.length,
+              expectedColumns: sampledColumns.length,
             },
           };
         }
@@ -287,7 +285,7 @@ export class SeenGossipBlockInput {
           blockInputMeta: {
             pending: GossipedInputType.dataColumn,
             haveColumns: dataColumnsCache.size,
-            expectedColumns: this.custodyConfig.sampledColumns.length,
+            expectedColumns: sampledColumns.length,
           },
         };
       }

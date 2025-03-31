@@ -25,7 +25,6 @@ export class CustodyConfig {
   custodyColumnsIndex: Uint8Array;
   custodyColumnsLen: number;
   custodyColumns: ColumnIndex[];
-  sampledColumns: ColumnIndex[];
 
   readonly emitter = new CustodyEventEmitter();
 
@@ -49,10 +48,6 @@ export class CustodyConfig {
     this.targetCustodyGroupCount = Math.max(config.CUSTODY_REQUIREMENT, config.NODE_CUSTODY_REQUIREMENT);
     this.advertisedCustodyGroupCount = this.targetCustodyGroupCount;
     this.custodyColumns = getDataColumns(nodeId, this.targetCustodyGroupCount);
-    this.sampledColumns = getDataColumns(
-      nodeId,
-      Math.max(config.CUSTODY_REQUIREMENT, config.NODE_CUSTODY_REQUIREMENT, config.SAMPLES_PER_SLOT)
-    );
     const custodyMeta = this.getCustodyColumnsMeta(this.custodyColumns);
     this.custodyColumnsIndex = custodyMeta.custodyColumnsIndex;
     this.custodyColumnsLen = custodyMeta.custodyColumnsLen;
@@ -79,6 +74,12 @@ export class CustodyConfig {
     return Math.max(this.getTargetCustodyGroupCount(), this.config.SAMPLES_PER_SLOT);
   }
 
+  /**
+   * Data columns sampled by the node as part of custody sampling
+   * https://github.com/ethereum/consensus-specs/blob/dev/specs/fulu/das-core.md#custody-sampling
+   *
+   * TODO: Consider race conditions if this updates during sync/backfill
+   */
   getSampledColumns(): ColumnIndex[] {
     return getDataColumns(this.nodeId, this.getSampledGroupCount());
   }
