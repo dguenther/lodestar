@@ -110,7 +110,7 @@ export class PeerDiscovery {
   private readonly clock: IClock;
   // TODO-das: remove nodeId and sampleSubnets once we remove onlyConnect* flag
   private nodeId: NodeId;
-  private sampledDataColumnSubnets: CustodyIndex[];
+  private sampleSubnets: CustodyIndex[];
   private peerRpcScores: IPeerRpcScoreStore;
   private metrics: NetworkCoreMetrics | null;
   private logger: LoggerNode;
@@ -144,7 +144,8 @@ export class PeerDiscovery {
     this.discv5 = discv5;
     // TODO-das: remove
     this.nodeId = nodeId;
-    this.sampledDataColumnSubnets = getCustodyGroups(nodeId, initialSamplingGroupCount);
+    // we will only connect to peers that can provide us custody
+    this.sampleSubnets = getCustodyGroups(nodeId, initialSamplingGroupCount);
     this.groupRequests = new Map();
 
     this.discv5StartMs = 0;
@@ -338,7 +339,7 @@ export class PeerDiscovery {
   }
 
   setSamplingGroupCount(count: number): void {
-    this.sampledDataColumnSubnets = getCustodyGroups(this.nodeId, count);
+    this.sampleSubnets = getCustodyGroups(this.nodeId, count);
   }
 
   /**
@@ -509,11 +510,11 @@ export class PeerDiscovery {
       const peerCustodyGroupCount = peer.peerCustodyGroups.length;
       const peerCustodyColumns = getDataColumns(nodeId, peerCustodyGroupCount);
 
-      const matchingSubnetsNum = this.sampledDataColumnSubnets.reduce(
+      const matchingSubnetsNum = this.sampleSubnets.reduce(
         (acc, elem) => acc + (peerCustodyColumns.includes(elem) ? 1 : 0),
         0
       );
-      const hasAllColumns = matchingSubnetsNum === this.sampledDataColumnSubnets.length;
+      const hasAllColumns = matchingSubnetsNum === this.sampleSubnets.length;
       const hasMinCustodyMatchingColumns = matchingSubnetsNum >= Math.max(this.config.CUSTODY_REQUIREMENT);
 
       this.logger.warn("peerCustodyColumns", {
@@ -522,7 +523,7 @@ export class PeerDiscovery {
         hasAllColumns,
         peerCustodyGroupCount,
         peerCustodyColumns: peerCustodyColumns.join(" "),
-        sampleSubnets: this.sampledDataColumnSubnets.join(" "),
+        sampleSubnets: this.sampleSubnets.join(" "),
         nodeId: `${toHexString(this.nodeId)}`,
       });
       if (this.onlyConnectToBiggerDataNodes && !hasAllColumns) {
