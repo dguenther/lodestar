@@ -22,10 +22,6 @@ export type ICustodyEvents = {
 export class CustodyEventEmitter extends (EventEmitter as {new (): StrictEventEmitter<EventEmitter, ICustodyEvents>}) {}
 
 export class CustodyConfig {
-  custodyColumnsIndex: Uint8Array;
-  custodyColumnsLen: number;
-  custodyColumns: ColumnIndex[];
-
   readonly emitter = new CustodyEventEmitter();
 
   /**
@@ -47,25 +43,16 @@ export class CustodyConfig {
     this.nodeId = nodeId;
     this.targetCustodyGroupCount = Math.max(config.CUSTODY_REQUIREMENT, config.NODE_CUSTODY_REQUIREMENT);
     this.advertisedCustodyGroupCount = this.targetCustodyGroupCount;
-    this.custodyColumns = getDataColumns(nodeId, this.targetCustodyGroupCount);
-    const custodyMeta = this.getCustodyColumnsMeta(this.custodyColumns);
-    this.custodyColumnsIndex = custodyMeta.custodyColumnsIndex;
-    this.custodyColumnsLen = custodyMeta.custodyColumnsLen;
   }
 
-  private getCustodyColumnsMeta(custodyColumns: ColumnIndex[]): {
+  getCustodyColumnsWithIndex(): {
+    custodyColumns: ColumnIndex[];
     custodyColumnsIndex: Uint8Array;
-    custodyColumnsLen: number;
   } {
-    // custody columns map which column maps to which index in the array of columns custodied
-    // with zero representing it is not custodied
-    const custodyColumnsIndex = new Uint8Array(NUMBER_OF_COLUMNS);
-    let custodyAtIndex = 1;
-    for (const columnIndex of custodyColumns) {
-      custodyColumnsIndex[columnIndex] = custodyAtIndex;
-      custodyAtIndex++;
-    }
-    return {custodyColumnsIndex, custodyColumnsLen: custodyColumns.length};
+    const custodyColumns = getDataColumns(this.nodeId, this.targetCustodyGroupCount);
+    const custodyColumnsIndex = this.getCustodyColumnsIndex(custodyColumns);
+
+    return {custodyColumns, custodyColumnsIndex};
   }
 
   getSampledGroupCount(): number {
@@ -119,6 +106,18 @@ export class CustodyConfig {
     if (advertisedGroupCount !== newAdvertisedCount) {
       this.emitter.emit(CustodyEvent.advertisedGroupCountUpdated, newAdvertisedCount);
     }
+  }
+
+  private getCustodyColumnsIndex(custodyColumns: ColumnIndex[]): Uint8Array {
+    // custody columns map which column maps to which index in the array of columns custodied
+    // with zero representing it is not custodied
+    const custodyColumnsIndex = new Uint8Array(NUMBER_OF_COLUMNS);
+    let custodyAtIndex = 1;
+    for (const columnIndex of custodyColumns) {
+      custodyColumnsIndex[columnIndex] = custodyAtIndex;
+      custodyAtIndex++;
+    }
+    return custodyColumnsIndex;
   }
 }
 
