@@ -14,12 +14,12 @@ export enum CustodyEvent {
   advertisedGroupCountUpdated = "advertisedGroupCountUpdated",
 }
 
-export type ICustodyEvents = {
+type ICustodyEvents = {
   [CustodyEvent.samplingGroupCountUpdated]: (samplingGroupCount: number) => void;
   [CustodyEvent.advertisedGroupCountUpdated]: (advertisedGroupCount: number) => void;
 };
 
-export class CustodyEventEmitter extends (EventEmitter as {new (): StrictEventEmitter<EventEmitter, ICustodyEvents>}) {}
+class CustodyEventEmitter extends (EventEmitter as {new (): StrictEventEmitter<EventEmitter, ICustodyEvents>}) {}
 
 export class CustodyConfig {
   readonly emitter = new CustodyEventEmitter();
