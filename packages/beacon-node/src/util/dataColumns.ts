@@ -71,10 +71,6 @@ export class CustodyConfig {
     return getDataColumns(this.nodeId, this.getSampledGroupCount());
   }
 
-  getSampledGroups(): CustodyIndex[] {
-    return getCustodyGroups(this.nodeId, this.getSampledGroupCount());
-  }
-
   /**
    * The number of custody groups the node should subscribe to
    */
