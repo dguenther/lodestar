@@ -25,7 +25,6 @@ import {Clock} from "../util/clock.js";
 import {initCKZG, loadEthereumTrustedSetup} from "../util/kzg.js";
 import {runNodeNotifier} from "./notifier.js";
 import {IBeaconNodeOptions} from "./options.js";
-import {LocalValidatorRegistry} from "./localValidatorRegistry.js";
 
 export * from "./options.js";
 
@@ -43,7 +42,6 @@ export type BeaconNodeModules = {
   monitoring: MonitoringService | null;
   restApi?: BeaconRestApiServer;
   controller?: AbortController;
-  localValidatorRegistry: LocalValidatorRegistry;
 };
 
 export type BeaconNodeInitModules = {
@@ -105,7 +103,6 @@ export class BeaconNode {
   restApi?: BeaconRestApiServer;
   sync: IBeaconSync;
   backfillSync: BackfillSync | null;
-  localValidatorRegistry: LocalValidatorRegistry;
 
   status: BeaconNodeStatus;
   private controller?: AbortController;
@@ -124,7 +121,6 @@ export class BeaconNode {
     sync,
     backfillSync,
     controller,
-    localValidatorRegistry,
   }: BeaconNodeModules) {
     this.opts = opts;
     this.config = config;
@@ -139,7 +135,6 @@ export class BeaconNode {
     this.sync = sync;
     this.backfillSync = backfillSync;
     this.controller = controller;
-    this.localValidatorRegistry = localValidatorRegistry;
 
     this.status = BeaconNodeStatus.started;
   }
@@ -173,8 +168,6 @@ export class BeaconNode {
       await initCKZG();
       loadEthereumTrustedSetup(opts.chain.trustedSetupPrecompute, opts.chain.trustedSetup);
     }
-
-    const localValidatorRegistry = new LocalValidatorRegistry();
 
     let metrics = null;
     if (
@@ -235,7 +228,6 @@ export class BeaconNode {
       executionBuilder: opts.executionBuilder.enabled
         ? initializeExecutionBuilder(opts.executionBuilder, config, metrics, logger)
         : undefined,
-      localValidatorRegistry,
     });
 
     // Load persisted data from disk to in-memory caches
@@ -327,7 +319,6 @@ export class BeaconNode {
       sync,
       backfillSync,
       controller,
-      localValidatorRegistry,
     }) as T;
   }
 

@@ -1420,11 +1420,6 @@ export function getValidatorApi(
       // If the discovery mechanism isn't disabled, attempt to set up a peer discovery for the
       // required subnets.
 
-      // Register validators in LocalValidatorRegistry
-      for (const subscription of subscriptions) {
-        chain.localValidatorRegistry.registerLocalValidator(subscription.validatorIndex);
-      }
-
       if (metrics) {
         for (const subscription of subscriptions) {
           metrics.registerLocalValidator(subscription.validatorIndex);

@@ -105,7 +105,6 @@ import {FileCPStateDatastore} from "./stateCache/datastore/file.js";
 import {FIFOBlockStateCache} from "./stateCache/fifoBlockStateCache.js";
 import {InMemoryCheckpointStateCache} from "./stateCache/inMemoryCheckpointsCache.js";
 import {PersistentCheckpointStateCache} from "./stateCache/persistentCheckpointsCache.js";
-import {LocalValidatorRegistry} from "../node/localValidatorRegistry.js";
 
 /**
  * Arbitrary constants, blobs and payloads should be consumed immediately in the same slot
@@ -184,7 +183,6 @@ export class BeaconChain implements IBeaconChain {
   protected readonly db: IBeaconDb;
   private abortController = new AbortController();
   private processShutdownCallback: ProcessShutdownCallback;
-  readonly localValidatorRegistry: LocalValidatorRegistry;
 
   constructor(
     opts: IChainOptions,
@@ -202,7 +200,6 @@ export class BeaconChain implements IBeaconChain {
       eth1,
       executionEngine,
       executionBuilder,
-      localValidatorRegistry,
     }: {
       nodeId: NodeId;
       config: BeaconConfig;
@@ -218,7 +215,6 @@ export class BeaconChain implements IBeaconChain {
       eth1: IEth1ForBlockProduction;
       executionEngine: IExecutionEngine;
       executionBuilder?: IExecutionBuilder;
-      localValidatorRegistry: LocalValidatorRegistry;
     }
   ) {
     this.opts = opts;
@@ -395,8 +391,6 @@ export class BeaconChain implements IBeaconChain {
     clock.addListener(ClockEvent.epoch, this.onClockEpoch.bind(this));
     emitter.addListener(ChainEvent.forkChoiceFinalized, this.onForkChoiceFinalized.bind(this));
     emitter.addListener(ChainEvent.forkChoiceJustified, this.onForkChoiceJustified.bind(this));
-
-    this.localValidatorRegistry = localValidatorRegistry;
   }
 
   async init(): Promise<void> {
@@ -1149,7 +1143,6 @@ export class BeaconChain implements IBeaconChain {
       sleep((1000 * this.config.SECONDS_PER_SLOT) / 2)
         .then(() => {
           metrics?.onceEveryEndOfEpoch(this.getHeadState())
-          this.localValidatorRegistry.pruneInactiveValidators()
         }).catch((e) => {
           if (!isErrorAborted(e)) this.logger.error("Error on validator monitor onceEveryEndOfEpoch", {slot}, e);
         });
@@ -1201,7 +1194,7 @@ export class BeaconChain implements IBeaconChain {
     if (headState) {
       this.opPool.pruneAll(headBlock, headState);
       // Update custody requirement based on finalized state
-      const validatorIndices = this.localValidatorRegistry.getLocalValidatorIndices();
+      const validatorIndices = this.beaconProposerCache.getValidatorIndices();
       this.custodyConfig.updateCustodyRequirement(headState, validatorIndices);
     }
 
