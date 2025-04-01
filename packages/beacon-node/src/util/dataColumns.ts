@@ -90,21 +90,22 @@ export class CustodyConfig {
   }
 
   updateCustodyRequirement(state: CachedBeaconStateAllForks, validatorIndices: ValidatorIndex[]) {
-    const groupCount = this.getSampledGroupCount();
-    const advertisedGroupCount = this.getAdvertisedCustodyGroupCount();
+    const oldSampledGroupCount = this.getSampledGroupCount();
+    const oldAdvertisedGroupCount = this.getAdvertisedCustodyGroupCount();
 
     this.targetCustodyGroupCount = getValidatorsCustodyRequirement(state, validatorIndices, this.config);
 
-    const newCount = this.getSampledGroupCount();
-    const newAdvertisedCount = this.getAdvertisedCustodyGroupCount();
+    const newSampledGroupCount = this.getSampledGroupCount();
 
-    if (groupCount !== newCount) {
-      this.emitter.emit(CustodyEvent.samplingGroupCountUpdated, newCount);
+    if (oldSampledGroupCount !== newSampledGroupCount) {
+      this.emitter.emit(CustodyEvent.samplingGroupCountUpdated, newSampledGroupCount);
     }
+
+    this.advertisedCustodyGroupCount = this.targetCustodyGroupCount;
     // TODO: If target group count increases, we should wait to update the advertised group until we've
     // backfilled the new groups.
-    if (advertisedGroupCount !== newAdvertisedCount) {
-      this.emitter.emit(CustodyEvent.advertisedGroupCountUpdated, newAdvertisedCount);
+    if (oldAdvertisedGroupCount !== this.advertisedCustodyGroupCount) {
+      this.emitter.emit(CustodyEvent.advertisedGroupCountUpdated, this.advertisedCustodyGroupCount);
     }
   }
 

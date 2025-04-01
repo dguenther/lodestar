@@ -11,7 +11,12 @@ import {afterEach, beforeAll, beforeEach, describe, expect, it} from "vitest";
 
 import {validateDataColumnsSidecars} from "../../../src/chain/validation/dataColumnSidecar.js";
 import {computeDataColumnSidecars} from "../../../src/util/blobs.js";
-import {CustodyConfig, getDataColumns, getValidatorsCustodyRequirement} from "../../../src/util/dataColumns.js";
+import {
+  CustodyConfig,
+  getDataColumns,
+  getValidatorsCustodyRequirement,
+  CustodyEvent,
+} from "../../../src/util/dataColumns.js";
 import {ckzg, initCKZG, loadEthereumTrustedSetup} from "../../../src/util/kzg.js";
 import {getMockedBeaconChain} from "../../mocks/mockedBeaconChain.js";
 import {generateRandomBlob, transactionForKzgCommitment} from "../../utils/kzg.js";
@@ -73,17 +78,36 @@ describe("getValidatorsCustodyRequirement", () => {
   });
 });
 
-describe("getCustodyConfig", () => {
-  it("validateDataColumnsSidecars", () => {
-    const config = createChainForkConfig({
+describe("CustodyConfig", () => {
+  let state: CachedBeaconStateAllForks;
+  let config: ChainForkConfig;
+  const nodeId = fromHexString("cdbee32dc3c50e9711d22be5565c7e44ff6108af663b2dc5abd2df573d2fa83f");
+
+  beforeEach(() => {
+    // Create a mock state with validators effective balance increments
+    state = {
+      epochCtx: {
+        effectiveBalanceIncrements: new Uint8Array(NUMBER_OF_CUSTODY_GROUPS + 1).fill(32), // Each validator has 32 ETH (1 increment)
+      },
+    } as unknown as CachedBeaconStateAllForks;
+
+    // Create a proper config using createChainForkConfig
+    config = createChainForkConfig({
+      ...defaultChainConfig,
       ALTAIR_FORK_EPOCH: 0,
       BELLATRIX_FORK_EPOCH: 0,
       CAPELLA_FORK_EPOCH: 0,
       DENEB_FORK_EPOCH: 0,
       ELECTRA_FORK_EPOCH: 0,
       FULU_FORK_EPOCH: Infinity,
+      BALANCE_PER_ADDITIONAL_CUSTODY_GROUP: 32000000000, // 32 ETH per group
+      VALIDATOR_CUSTODY_REQUIREMENT: 6,
+      CUSTODY_REQUIREMENT: 4,
+      SAMPLES_PER_SLOT: 8,
     });
-    const nodeId = fromHexString("cdbee32dc3c50e9711d22be5565c7e44ff6108af663b2dc5abd2df573d2fa83f");
+  });
+
+  it("custody columns present in sampled columns", () => {
     const custodyConfig = new CustodyConfig(nodeId, config);
     const {custodyColumns} = custodyConfig.getCustodyColumnsWithIndex();
     const sampledColumns = custodyConfig.getSampledColumns();
@@ -93,6 +117,60 @@ describe("getCustodyConfig", () => {
     expect(sampledColumns.length).toEqual(8);
     const custodyPresentInSample = custodyColumns.reduce((acc, elem) => acc && sampledColumns.includes(elem), true);
     expect(custodyPresentInSample).toEqual(true);
+  });
+
+  describe("updateCustodyRequirement", () => {
+    it("should emit events when appropriate", () => {
+      const custodyConfig = new CustodyConfig(nodeId, config);
+
+      // Set up event listeners
+      const samplingGroupCounts: number[] = [];
+      const advertisedGroupCounts: number[] = [];
+
+      custodyConfig.emitter.on(CustodyEvent.samplingGroupCountUpdated, (count) => {
+        samplingGroupCounts.push(count);
+      });
+
+      custodyConfig.emitter.on(CustodyEvent.advertisedGroupCountUpdated, (count) => {
+        advertisedGroupCounts.push(count);
+      });
+
+      // Call updateCustodyRequirement with validators that will trigger changes
+      custodyConfig.updateCustodyRequirement(state, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+      // Verify events were emitted with correct values
+      expect(samplingGroupCounts).toHaveLength(1);
+      expect(samplingGroupCounts[0]).toBe(10); // 10 validators with 32 ETH each = 320 ETH total
+      expect(advertisedGroupCounts).toHaveLength(1);
+      expect(advertisedGroupCounts[0]).toBe(10);
+
+      // Clear the arrays to remove events from first call
+      samplingGroupCounts.length = 0;
+      advertisedGroupCounts.length = 0;
+
+      // Second call with same validators should not trigger changes
+      custodyConfig.updateCustodyRequirement(state, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+      // Verify no new events were emitted
+      expect(samplingGroupCounts).toHaveLength(0);
+      expect(advertisedGroupCounts).toHaveLength(0);
+    });
+
+    it("should update advertised, target, and sampled group counts", () => {
+      const custodyConfig = new CustodyConfig(nodeId, config);
+
+      expect(custodyConfig.getSampledGroupCount()).toBe(8);
+      expect(custodyConfig.getTargetCustodyGroupCount()).toBe(4);
+      expect(custodyConfig.getAdvertisedCustodyGroupCount()).toBe(4);
+
+      // Call updateCustodyRequirement with validators that will trigger changes
+      custodyConfig.updateCustodyRequirement(state, [0]);
+
+      // Verify events were emitted with correct values
+      expect(custodyConfig.getSampledGroupCount()).toBe(8);
+      expect(custodyConfig.getTargetCustodyGroupCount()).toBe(6);
+      expect(custodyConfig.getAdvertisedCustodyGroupCount()).toBe(6);
+    });
   });
 });
 
