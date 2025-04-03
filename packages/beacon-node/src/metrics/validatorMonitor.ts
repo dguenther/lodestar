@@ -85,7 +85,6 @@ export type ValidatorMonitor = {
   ): void;
   onceEveryEndOfEpoch(state: CachedBeaconStateAllForks): void;
   scrapeMetrics(slotClock: Slot): void;
-  getLocalValidatorIndices(): ValidatorIndex[];
 };
 
 export type ValidatorMonitorOpts = {
@@ -789,13 +788,6 @@ export function createValidatorMonitor(
       metrics.validatorMonitor.validatorsInSyncCommittee.set(validatorsInSyncCommittee);
       metrics.validatorMonitor.prevEpochSyncCommitteeHits.set(prevEpochSyncCommitteeHits);
       metrics.validatorMonitor.prevEpochSyncCommitteeMisses.set(prevEpochSyncCommitteeMisses);
-    },
-
-    /**
-     * Get the indices of the validators that are being monitored.
-     */
-    getLocalValidatorIndices() {
-      return Array.from(validators.keys());
     },
   };
 }

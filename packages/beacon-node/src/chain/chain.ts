@@ -1138,12 +1138,11 @@ export class BeaconChain implements IBeaconChain {
     }
 
     const metrics = this.metrics;
-    if ((slot + 1) % SLOTS_PER_EPOCH === 0) {
+    if (metrics && (slot + 1) % SLOTS_PER_EPOCH === 0) {
       // On the last slot of the epoch
       sleep((1000 * this.config.SECONDS_PER_SLOT) / 2)
-        .then(() => {
-          metrics?.onceEveryEndOfEpoch(this.getHeadState())
-        }).catch((e) => {
+        .then(() => metrics?.onceEveryEndOfEpoch(this.getHeadState()))
+        .catch((e) => {
           if (!isErrorAborted(e)) this.logger.error("Error on validator monitor onceEveryEndOfEpoch", {slot}, e);
         });
     }
