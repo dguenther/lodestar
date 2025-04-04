@@ -247,7 +247,7 @@ export class SeenGossipBlockInput {
           };
         }
 
-        const sampledColumns = this.custodyConfig.getSampledColumns();
+        const sampledColumns = this.custodyConfig.sampledColumns;
         const sampledIndexesPresent =
           dataColumnsCache.size >= sampledColumns.length &&
           sampledColumns.reduce((acc, columnIndex) => acc && dataColumnsCache.has(columnIndex), true);

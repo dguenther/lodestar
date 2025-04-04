@@ -109,8 +109,8 @@ describe("CustodyConfig", () => {
 
   it("custody columns present in sampled columns", () => {
     const custodyConfig = new CustodyConfig(nodeId, config);
-    const {custodyColumns} = custodyConfig.getCustodyColumnsWithIndex();
-    const sampledColumns = custodyConfig.getSampledColumns();
+    const {custodyColumns} = custodyConfig;
+    const sampledColumns = custodyConfig.sampledColumns;
 
     expect(custodyColumns.length).toEqual(4);
     expect(custodyColumns).toEqual([2, 80, 89, 118]);
@@ -159,17 +159,17 @@ describe("CustodyConfig", () => {
     it("should update advertised, target, and sampled group counts", () => {
       const custodyConfig = new CustodyConfig(nodeId, config);
 
-      expect(custodyConfig.getSampledGroupCount()).toBe(8);
-      expect(custodyConfig.getTargetCustodyGroupCount()).toBe(4);
-      expect(custodyConfig.getAdvertisedCustodyGroupCount()).toBe(4);
+      expect(custodyConfig.sampledGroupCount).toBe(8);
+      expect(custodyConfig.targetCustodyGroupCount).toBe(4);
+      expect(custodyConfig.advertisedCustodyGroupCount).toBe(4);
 
       // Call updateCustodyRequirement with validators that will trigger changes
       custodyConfig.updateCustodyRequirement(state, [0]);
 
       // Verify events were emitted with correct values
-      expect(custodyConfig.getSampledGroupCount()).toBe(8);
-      expect(custodyConfig.getTargetCustodyGroupCount()).toBe(6);
-      expect(custodyConfig.getAdvertisedCustodyGroupCount()).toBe(6);
+      expect(custodyConfig.sampledGroupCount).toBe(8);
+      expect(custodyConfig.targetCustodyGroupCount).toBe(6);
+      expect(custodyConfig.advertisedCustodyGroupCount).toBe(6);
     });
   });
 });

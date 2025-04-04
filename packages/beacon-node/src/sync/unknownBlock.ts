@@ -303,7 +303,7 @@ export class UnknownBlockSync {
       const {cachedData} = block.blockInput;
       if (cachedData.fork === ForkName.fulu) {
         const {dataColumnsCache} = cachedData as CachedDataColumns;
-        const sampledColumns = this.network.custodyConfig.getSampledColumns();
+        const sampledColumns = this.network.custodyConfig.sampledColumns;
         const neededColumns = sampledColumns.reduce((acc, elem) => {
           if (dataColumnsCache.get(elem) === undefined) {
             acc.push(elem);
@@ -559,7 +559,7 @@ export class UnknownBlockSync {
         const {cachedData} = prevBlockInput;
         if (cachedData.fork === ForkName.fulu) {
           const {dataColumnsCache} = cachedData as CachedDataColumns;
-          const sampledColumns = this.network.custodyConfig.getSampledColumns();
+          const sampledColumns = this.network.custodyConfig.sampledColumns;
           const neededColumns = sampledColumns.reduce((acc, elem) => {
             if (dataColumnsCache.get(elem) === undefined) {
               acc.push(elem);
@@ -672,7 +672,7 @@ export class UnknownBlockSync {
         const pendingBlobs = blobKzgCommitmentsLen - cachedData.blobsCache.size;
         Object.assign(dataMeta, {pendingBlobs});
       } else if (cachedData.fork === ForkName.fulu) {
-        sampledColumns = this.network.custodyConfig.getSampledColumns();
+        sampledColumns = this.network.custodyConfig.sampledColumns;
         const pendingColumns = sampledColumns.length - (cachedData as CachedDataColumns).dataColumnsCache.size;
         Object.assign(dataMeta, {pendingColumns});
       }

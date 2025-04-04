@@ -78,7 +78,7 @@ export async function beaconBlocksMaybeBlobsByRange(
       return {blocks, pendingDataColumns: null};
     }
     // get columns
-    const sampledColumns = network.custodyConfig.getSampledColumns();
+    const sampledColumns = network.custodyConfig.sampledColumns;
     const neededColumns = partialDownload ? partialDownload.pendingDataColumns : sampledColumns;
     const peerColumns = network.getConnectedPeerCustody(peerId);
 

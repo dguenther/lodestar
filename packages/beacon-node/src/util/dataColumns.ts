@@ -27,39 +27,28 @@ export class CustodyConfig {
   /**
    * The number of custody groups the node should subscribe to
    */
-  private targetCustodyGroupCount: number;
+  targetCustodyGroupCount: number;
+
+  /**
+   * The custody columns the node should subscribe to
+   */
+  custodyColumns: ColumnIndex[];
+
+  /**
+   * Custody columns map which column maps to which index in the array of columns custodied
+   * with zero representing it is not custodied
+   */
+  custodyColumnsIndex: Uint8Array;
 
   /**
    * The number of custody groups the node will advertise to the network
    */
-  private advertisedCustodyGroupCount: number;
+  advertisedCustodyGroupCount: number;
 
-  private config: ChainForkConfig;
-
-  private nodeId: NodeId;
-
-  constructor(nodeId: NodeId, config: ChainForkConfig) {
-    this.config = config;
-    this.nodeId = nodeId;
-    this.targetCustodyGroupCount = Math.max(config.CUSTODY_REQUIREMENT, config.NODE_CUSTODY_REQUIREMENT);
-    this.advertisedCustodyGroupCount = this.targetCustodyGroupCount;
-  }
-
-  getCustodyColumnsWithIndex(): {
-    custodyColumns: ColumnIndex[];
-    custodyColumnsIndex: Uint8Array;
-  } {
-    const custodyColumns = getDataColumns(this.nodeId, this.targetCustodyGroupCount);
-    const custodyColumnsIndex = this.getCustodyColumnsIndex(custodyColumns);
-
-    return {custodyColumns, custodyColumnsIndex};
-  }
-
-  getSampledGroupCount(): number {
-    // TODO: Porting this over to match current behavior, but I think this incorrectly mixes units:
-    // SAMPLES_PER_SLOT is in columns, and CUSTODY_GROUP_COUNT is in groups
-    return Math.max(this.getTargetCustodyGroupCount(), this.config.SAMPLES_PER_SLOT);
-  }
+  /**
+   * The number of custody groups the node will sample
+   */
+  sampledGroupCount: number;
 
   /**
    * Data columns sampled by the node as part of custody sampling
@@ -67,34 +56,36 @@ export class CustodyConfig {
    *
    * TODO: Consider race conditions if this updates during sync/backfill
    */
-  getSampledColumns(): ColumnIndex[] {
-    return getDataColumns(this.nodeId, this.getSampledGroupCount());
-  }
+  sampledColumns: ColumnIndex[];
 
-  /**
-   * The number of custody groups the node should subscribe to
-   */
-  getTargetCustodyGroupCount(): number {
-    return this.targetCustodyGroupCount;
-  }
+  private config: ChainForkConfig;
+  private nodeId: NodeId;
 
-  /**
-   * The number of custody groups the node will advertise to the network
-   */
-  getAdvertisedCustodyGroupCount(): number {
-    return this.advertisedCustodyGroupCount;
+  constructor(nodeId: NodeId, config: ChainForkConfig) {
+    this.config = config;
+    this.nodeId = nodeId;
+    this.targetCustodyGroupCount = Math.max(config.CUSTODY_REQUIREMENT, config.NODE_CUSTODY_REQUIREMENT);
+    this.custodyColumns = getDataColumns(this.nodeId, this.targetCustodyGroupCount);
+    this.custodyColumnsIndex = this.getCustodyColumnsIndex(this.custodyColumns);
+    this.advertisedCustodyGroupCount = this.targetCustodyGroupCount;
+    this.sampledGroupCount = Math.max(this.targetCustodyGroupCount, this.config.SAMPLES_PER_SLOT);
+    this.sampledColumns = getDataColumns(this.nodeId, this.sampledGroupCount);
   }
 
   updateCustodyRequirement(state: CachedBeaconStateAllForks, validatorIndices: ValidatorIndex[]) {
-    const oldSampledGroupCount = this.getSampledGroupCount();
-    const oldAdvertisedGroupCount = this.getAdvertisedCustodyGroupCount();
+    const oldSampledGroupCount = this.sampledGroupCount;
+    const oldAdvertisedGroupCount = this.advertisedCustodyGroupCount;
 
     this.targetCustodyGroupCount = getValidatorsCustodyRequirement(state, validatorIndices, this.config);
+    this.custodyColumns = getDataColumns(this.nodeId, this.targetCustodyGroupCount);
+    this.custodyColumnsIndex = this.getCustodyColumnsIndex(this.custodyColumns);
+    // TODO: Porting this over to match current behavior, but I think this incorrectly mixes units:
+    // SAMPLES_PER_SLOT is in columns, and CUSTODY_GROUP_COUNT is in groups
+    this.sampledGroupCount = Math.max(this.targetCustodyGroupCount, this.config.SAMPLES_PER_SLOT);
+    this.sampledColumns = getDataColumns(this.nodeId, this.sampledGroupCount);
 
-    const newSampledGroupCount = this.getSampledGroupCount();
-
-    if (oldSampledGroupCount !== newSampledGroupCount) {
-      this.emitter.emit(CustodyEvent.samplingGroupCountUpdated, newSampledGroupCount);
+    if (oldSampledGroupCount !== this.sampledGroupCount) {
+      this.emitter.emit(CustodyEvent.samplingGroupCountUpdated, this.sampledGroupCount);
     }
 
     this.advertisedCustodyGroupCount = this.targetCustodyGroupCount;

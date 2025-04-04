@@ -53,7 +53,7 @@ export async function beaconBlocksMaybeBlobsByRoot(
   const blobsDataBlocks = [];
   const dataColumnsDataBlocks = [];
 
-  const sampledColumns = network.custodyConfig.getSampledColumns();
+  const sampledColumns = network.custodyConfig.sampledColumns;
   const neededColumns = partialDownload ? partialDownload.pendingDataColumns : sampledColumns;
   const peerColumns = network.getConnectedPeerCustody(peerId);
 
@@ -523,7 +523,7 @@ export async function unavailableBeaconBlobsByRootPostFulu(
     opts.metrics?.syncUnknownBlock.resolveAvailabilitySource.inc({source: BlockInputAvailabilitySource.UNKNOWN_SYNC});
     return getBlockInput.availableData(config, block, BlockSource.byRoot, blockData);
   } else {
-    const sampledColumns = network.custodyConfig.getSampledColumns();
+    const sampledColumns = network.custodyConfig.sampledColumns;
     let neededColumns = sampledColumns.reduce((acc, elem) => {
       if (dataColumnsCache.get(elem) === undefined) {
         acc.push(elem);
