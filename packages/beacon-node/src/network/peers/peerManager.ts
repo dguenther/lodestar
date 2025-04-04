@@ -133,7 +133,8 @@ enum RelevantPeerStatus {
  */
 export class PeerManager {
   private nodeId: NodeId;
-  private sampleSubnets: CustodyIndex[];
+  private sampleSubnets: number[];
+  private samplingGroups: CustodyIndex[];
   private readonly libp2p: Libp2p;
   private readonly logger: LoggerNode;
   private readonly metrics: NetworkCoreMetrics | null;
@@ -173,7 +174,10 @@ export class PeerManager {
     this.discovery = discovery;
     this.nodeId = modules.nodeId;
     // we will only connect to peers that can provide us custody
-    this.sampleSubnets = getCustodyGroups(this.nodeId, modules.initialSamplingGroupCount);
+    // TODO: @matthewkeil check if this needs to be updated for custody groups
+    // TODO(das): may not need this, use `this.samplingGroups` instead
+    this.sampleSubnets = getDataColumns(this.nodeId, modules.initialSamplingGroupCount);
+    this.samplingGroups = getCustodyGroups(this.nodeId, modules.initialSamplingGroupCount);
 
     const {metrics} = modules;
     if (metrics) {
@@ -224,7 +228,8 @@ export class PeerManager {
   }
 
   setSamplingGroupCount(count: number): void {
-    this.sampleSubnets = getCustodyGroups(this.nodeId, count);
+    this.sampleSubnets = getDataColumns(this.nodeId, count);
+    this.samplingGroups = getCustodyGroups(this.nodeId, count);
     this.discovery?.setSamplingGroupCount(count);
   }
 
@@ -563,8 +568,8 @@ export class PeerManager {
       // Collect subnets which we need peers for in the current slot
       this.attnetsService.getActiveSubnets(),
       this.syncnetsService.getActiveSubnets(),
-      // ignore sampleSubnets for pre-fulu forks
-      forkSeq >= ForkSeq.fulu ? this.sampleSubnets : undefined,
+      // ignore samplingGroups for pre-fulu forks
+      forkSeq >= ForkSeq.fulu ? this.samplingGroups : undefined,
       this.opts,
       this.metrics
     );
