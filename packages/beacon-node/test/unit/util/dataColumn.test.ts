@@ -3,7 +3,7 @@ import {createBeaconConfig, createChainForkConfig, defaultChainConfig} from "@lo
 import {NUMBER_OF_COLUMNS, NUMBER_OF_CUSTODY_GROUPS} from "@lodestar/params";
 import {ssz} from "@lodestar/types";
 import {bigIntToBytes} from "@lodestar/utils";
-import {BeaconStateAllForks, CachedBeaconStateAllForks} from "@lodestar/state-transition";
+import {CachedBeaconStateAllForks} from "@lodestar/state-transition";
 import {ChainForkConfig} from "@lodestar/config";
 import {ValidatorIndex} from "@lodestar/types";
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -122,10 +122,8 @@ describe("CustodyConfig", () => {
       expect(custodyConfig.targetCustodyGroupCount).toBe(4);
       expect(custodyConfig.advertisedCustodyGroupCount).toBe(4);
 
-      // Call updateCustodyRequirement with validators that will trigger changes
-      custodyConfig.updateCustodyRequirement(state, [0]);
+      custodyConfig.updateTargetCustodyGroupCount(6);
 
-      // Verify events were emitted with correct values
       expect(custodyConfig.sampledGroupCount).toBe(8);
       expect(custodyConfig.targetCustodyGroupCount).toBe(6);
       expect(custodyConfig.advertisedCustodyGroupCount).toBe(6);

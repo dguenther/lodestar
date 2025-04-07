@@ -73,8 +73,8 @@ export class CustodyConfig {
     this.sampledSubnets = this.sampledColumns.map(computeSubnetForDataColumn);
   }
 
-  updateCustodyRequirement(state: CachedBeaconStateAllForks, validatorIndices: ValidatorIndex[]) {
-    this.targetCustodyGroupCount = getValidatorsCustodyRequirement(state, validatorIndices, this.config);
+  updateTargetCustodyGroupCount(targetCustodyGroupCount: number) {
+    this.targetCustodyGroupCount = targetCustodyGroupCount;
     this.custodyColumns = getDataColumns(this.nodeId, this.targetCustodyGroupCount);
     this.custodyColumnsIndex = this.getCustodyColumnsIndex(this.custodyColumns);
     // TODO: Porting this over to match current behavior, but I think this incorrectly mixes units:

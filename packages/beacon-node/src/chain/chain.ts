@@ -49,7 +49,7 @@ import {Metrics} from "../metrics/index.js";
 import {NodeId} from "../network/subnets/interface.js";
 import {BufferPool} from "../util/bufferPool.js";
 import {Clock, ClockEvent, IClock} from "../util/clock.js";
-import {CustodyConfig} from "../util/dataColumns.js";
+import {CustodyConfig, getValidatorsCustodyRequirement} from "../util/dataColumns.js";
 import {ensureDir, writeIfNotExist} from "../util/file.js";
 import {isOptimisticBlock} from "../util/forkChoice.js";
 import {SerializedCache} from "../util/serializedCache.js";
@@ -1192,7 +1192,8 @@ export class BeaconChain implements IBeaconChain {
       this.opPool.pruneAll(headBlock, headState);
       // Update custody requirement based on finalized state
       const validatorIndices = this.beaconProposerCache.getValidatorIndices();
-      this.custodyConfig.updateCustodyRequirement(headState, validatorIndices);
+      const targetCustodyGroupCount = getValidatorsCustodyRequirement(headState, validatorIndices, this.config);
+      this.custodyConfig.updateTargetCustodyGroupCount(targetCustodyGroupCount);
       this.emitter.emit(ChainEvent.updateSampledGroupCount, this.custodyConfig.sampledGroupCount);
       this.emitter.emit(ChainEvent.updateAdvertisedGroupCount, this.custodyConfig.advertisedCustodyGroupCount);
     }
