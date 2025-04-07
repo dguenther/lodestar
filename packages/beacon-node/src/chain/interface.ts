@@ -89,6 +89,7 @@ export interface IBeaconChain {
   readonly executionBuilder?: IExecutionBuilder;
   // Expose config for convenience in modularized functions
   readonly config: BeaconConfig;
+  readonly custodyConfig: CustodyConfig;
   readonly logger: Logger;
   readonly metrics: Metrics | null;
   readonly bufferPool: BufferPool | null;
@@ -113,9 +114,6 @@ export interface IBeaconChain {
   readonly syncCommitteeMessagePool: SyncCommitteeMessagePool;
   readonly syncContributionAndProofPool: SyncContributionAndProofPool;
   readonly opPool: OpPool;
-
-  // Data column custody config
-  readonly custodyConfig: CustodyConfig;
 
   // Gossip seen cache
   readonly seenAttesters: SeenAttesters;

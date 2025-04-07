@@ -1,6 +1,11 @@
 import {digest} from "@chainsafe/as-sha256";
 import {ChainForkConfig} from "@lodestar/config";
-import {EFFECTIVE_BALANCE_INCREMENT, NUMBER_OF_COLUMNS, NUMBER_OF_CUSTODY_GROUPS} from "@lodestar/params";
+import {
+  DATA_COLUMN_SIDECAR_SUBNET_COUNT,
+  EFFECTIVE_BALANCE_INCREMENT,
+  NUMBER_OF_COLUMNS,
+  NUMBER_OF_CUSTODY_GROUPS,
+} from "@lodestar/params";
 import {ColumnIndex, CustodyIndex, ValidatorIndex} from "@lodestar/types";
 import {ssz} from "@lodestar/types";
 import {bytesToBigInt} from "@lodestar/utils";
@@ -35,12 +40,22 @@ export class CustodyConfig {
   sampledGroupCount: number;
 
   /**
+   * Custody groups sampled by the node as part of custody sampling
+   */
+  sampleGroups: CustodyIndex[];
+
+  /**
    * Data columns sampled by the node as part of custody sampling
    * https://github.com/ethereum/consensus-specs/blob/dev/specs/fulu/das-core.md#custody-sampling
    *
    * TODO: Consider race conditions if this updates during sync/backfill
    */
   sampledColumns: ColumnIndex[];
+
+  /**
+   * Subnets sampled by the node as part of custody sampling
+   */
+  sampledSubnets: number[];
 
   private config: ChainForkConfig;
   private nodeId: NodeId;
@@ -53,7 +68,9 @@ export class CustodyConfig {
     this.custodyColumnsIndex = this.getCustodyColumnsIndex(this.custodyColumns);
     this.advertisedCustodyGroupCount = this.targetCustodyGroupCount;
     this.sampledGroupCount = Math.max(this.targetCustodyGroupCount, this.config.SAMPLES_PER_SLOT);
+    this.sampleGroups = getCustodyGroups(this.nodeId, this.sampledGroupCount);
     this.sampledColumns = getDataColumns(this.nodeId, this.sampledGroupCount);
+    this.sampledSubnets = this.sampledColumns.map(computeSubnetForDataColumn);
   }
 
   updateCustodyRequirement(state: CachedBeaconStateAllForks, validatorIndices: ValidatorIndex[]) {
@@ -63,7 +80,9 @@ export class CustodyConfig {
     // TODO: Porting this over to match current behavior, but I think this incorrectly mixes units:
     // SAMPLES_PER_SLOT is in columns, and CUSTODY_GROUP_COUNT is in groups
     this.sampledGroupCount = Math.max(this.targetCustodyGroupCount, this.config.SAMPLES_PER_SLOT);
+    this.sampleGroups = getCustodyGroups(this.nodeId, this.sampledGroupCount);
     this.sampledColumns = getDataColumns(this.nodeId, this.sampledGroupCount);
+    this.sampledSubnets = this.sampledColumns.map(computeSubnetForDataColumn);
 
     // TODO: If target group count increases, we should wait to update the advertised group until we've
     // backfilled the new groups.
@@ -81,6 +100,10 @@ export class CustodyConfig {
     }
     return custodyColumnsIndex;
   }
+}
+
+function computeSubnetForDataColumn(columnIndex: ColumnIndex): number {
+  return columnIndex % DATA_COLUMN_SIDECAR_SUBNET_COUNT;
 }
 
 /**
@@ -113,14 +136,14 @@ export function getValidatorsCustodyRequirement(
  * SPEC FUNCTION
  * https://github.com/ethereum/consensus-specs/blob/dev/specs/fulu/das-core.md#compute_columns_for_custody_group
  */
-export function computeColumnsForCustodyGroup(custodyGroup: CustodyIndex): ColumnIndex[] {
-  if (custodyGroup > NUMBER_OF_CUSTODY_GROUPS) {
-    custodyGroup = NUMBER_OF_CUSTODY_GROUPS;
+export function computeColumnsForCustodyGroup(custodyIndex: CustodyIndex): ColumnIndex[] {
+  if (custodyIndex > NUMBER_OF_CUSTODY_GROUPS) {
+    custodyIndex = NUMBER_OF_CUSTODY_GROUPS;
   }
   const columnsPerCustodyGroup = Number(NUMBER_OF_COLUMNS / NUMBER_OF_CUSTODY_GROUPS);
   const columnIndexes = [];
   for (let i = 0; i < columnsPerCustodyGroup; i++) {
-    columnIndexes.push(NUMBER_OF_CUSTODY_GROUPS * i + custodyGroup);
+    columnIndexes.push(NUMBER_OF_CUSTODY_GROUPS * i + custodyIndex);
   }
   columnIndexes.sort((a, b) => a - b);
   return columnIndexes;

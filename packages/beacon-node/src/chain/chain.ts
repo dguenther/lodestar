@@ -121,6 +121,7 @@ export class BeaconChain implements IBeaconChain {
   readonly executionBuilder?: IExecutionBuilder;
   // Expose config for convenience in modularized functions
   readonly config: BeaconConfig;
+  readonly custodyConfig: CustodyConfig;
   readonly logger: Logger;
   readonly metrics: Metrics | null;
   readonly bufferPool: BufferPool | null;
@@ -142,9 +143,6 @@ export class BeaconChain implements IBeaconChain {
   readonly syncCommitteeMessagePool: SyncCommitteeMessagePool;
   readonly syncContributionAndProofPool = new SyncContributionAndProofPool();
   readonly opPool = new OpPool();
-
-  // Data column custody config
-  readonly custodyConfig: CustodyConfig;
 
   // Gossip seen cache
   readonly seenAttesters = new SeenAttesters();

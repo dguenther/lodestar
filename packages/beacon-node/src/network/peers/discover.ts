@@ -6,7 +6,6 @@ import {LoggerNode} from "@lodestar/logger/node";
 import {ATTESTATION_SUBNET_COUNT, ForkSeq, SYNC_COMMITTEE_SUBNET_COUNT} from "@lodestar/params";
 import {CustodyIndex, SubnetID} from "@lodestar/types";
 import {pruneSetToMax, sleep} from "@lodestar/utils";
-import {ColumnIndex} from "@lodestar/types";
 import {bytesToInt} from "@lodestar/utils";
 import {Multiaddr} from "@multiformats/multiaddr";
 import {getCustodyGroups, getDataColumns} from "../../util/dataColumns.js";
@@ -21,6 +20,7 @@ import {IPeerRpcScoreStore, ScoreState} from "./score/index.js";
 import {deserializeEnrSubnets, zeroAttnets, zeroSyncnets} from "./utils/enrSubnetsDeserialize.js";
 import {type GroupQueries} from "./utils/prioritizePeers.js";
 import {IClock} from "../../util/clock.js";
+import {NetworkConfig} from "../networkConfig.js";
 
 /** Max number of cached ENRs after discovering a good peer */
 const MAX_CACHED_ENRS = 100;
@@ -39,13 +39,12 @@ export type PeerDiscoveryOpts = {
 };
 
 export type PeerDiscoveryModules = {
-  nodeId: NodeId;
+  networkConfig: NetworkConfig;
   libp2p: Libp2p;
   clock: IClock;
   peerRpcScores: IPeerRpcScoreStore;
   metrics: NetworkCoreMetrics | null;
   logger: LoggerNode;
-  config: BeaconConfig;
   initialSamplingGroupCount: number;
 };
 
@@ -134,18 +133,18 @@ export class PeerDiscovery {
   private onlyConnectToMinimalCustodyOverlapNodes: boolean | undefined = false;
 
   constructor(modules: PeerDiscoveryModules, opts: PeerDiscoveryOpts, discv5: Discv5Worker) {
-    const {libp2p, clock, peerRpcScores, metrics, logger, config, nodeId, initialSamplingGroupCount} = modules;
+    const {libp2p, clock, peerRpcScores, metrics, logger, networkConfig, initialSamplingGroupCount} = modules;
     this.libp2p = libp2p;
     this.clock = clock;
     this.peerRpcScores = peerRpcScores;
     this.metrics = metrics;
     this.logger = logger;
-    this.config = config;
+    this.config = networkConfig.getConfig();
     this.discv5 = discv5;
     // TODO-das: remove
-    this.nodeId = nodeId;
+    this.nodeId = networkConfig.getNodeId();
     // we will only connect to peers that can provide us custody
-    this.sampleSubnets = getCustodyGroups(nodeId, initialSamplingGroupCount);
+    this.sampleSubnets = getCustodyGroups(this.nodeId, initialSamplingGroupCount);
     this.groupRequests = new Map();
 
     this.discv5StartMs = 0;
@@ -205,7 +204,7 @@ export class PeerDiscovery {
       peerId: modules.libp2p.peerId,
       metrics: modules.metrics ?? undefined,
       logger: modules.logger,
-      config: modules.config,
+      config: modules.networkConfig.getConfig(),
     });
 
     return new PeerDiscovery(modules, opts, discv5);
