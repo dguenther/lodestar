@@ -83,10 +83,10 @@ export class CustodyConfig {
     this.sampleGroups = getCustodyGroups(this.nodeId, this.sampledGroupCount);
     this.sampledColumns = getDataColumns(this.nodeId, this.sampledGroupCount);
     this.sampledSubnets = this.sampledColumns.map(computeSubnetForDataColumn);
+  }
 
-    // TODO: If target group count increases, we should wait to update the advertised group until we've
-    // backfilled the new groups.
-    this.advertisedCustodyGroupCount = this.targetCustodyGroupCount;
+  updateAdvertisedCustodyGroupCount(advertisedCustodyGroupCount: number) {
+    this.advertisedCustodyGroupCount = advertisedCustodyGroupCount;
   }
 
   private getCustodyColumnsIndex(custodyColumns: ColumnIndex[]): Uint8Array {

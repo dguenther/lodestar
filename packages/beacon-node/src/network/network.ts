@@ -139,7 +139,7 @@ export class Network implements INetwork {
     this.chain.emitter.on(routes.events.EventType.lightClientOptimisticUpdate, ({data}) =>
       this.onLightClientOptimisticUpdate(data)
     );
-    this.chain.emitter.on(ChainEvent.updateSampledGroupCount, this.onSamplingGroupCountUpdated);
+    this.chain.emitter.on(ChainEvent.updateTargetGroupCount, this.onTargetGroupCountUpdated);
     this.chain.emitter.on(ChainEvent.updateAdvertisedGroupCount, this.onAdvertisedGroupCountUpdated);
   }
 
@@ -234,7 +234,7 @@ export class Network implements INetwork {
     this.chain.emitter.off(routes.events.EventType.head, this.onHead);
     this.chain.emitter.off(routes.events.EventType.lightClientFinalityUpdate, this.onLightClientFinalityUpdate);
     this.chain.emitter.off(routes.events.EventType.lightClientOptimisticUpdate, this.onLightClientOptimisticUpdate);
-    this.chain.emitter.off(ChainEvent.updateSampledGroupCount, this.onSamplingGroupCountUpdated);
+    this.chain.emitter.off(ChainEvent.updateTargetGroupCount, this.onTargetGroupCountUpdated);
     this.chain.emitter.off(ChainEvent.updateAdvertisedGroupCount, this.onAdvertisedGroupCountUpdated);
     await this.core.close();
     this.logger.debug("network core closed");
@@ -712,8 +712,8 @@ export class Network implements INetwork {
     this.connectedPeers.delete(data.peer);
   };
 
-  private onSamplingGroupCountUpdated = (count: number): void => {
-    this.core.setSamplingGroupCount(count);
+  private onTargetGroupCountUpdated = (count: number): void => {
+    this.core.setTargetGroupCount(count);
   };
 
   private onAdvertisedGroupCountUpdated = (count: number): void => {

@@ -219,8 +219,8 @@ export class WorkerNetworkCore implements INetworkCore {
 
   // Custody
 
-  setSamplingGroupCount(count: number): Promise<void> {
-    return this.getApi().setSamplingGroupCount(count);
+  setTargetGroupCount(count: number): Promise<void> {
+    return this.getApi().setTargetGroupCount(count);
   }
   setAdvertisedGroupCount(count: number): Promise<void> {
     return this.getApi().setAdvertisedGroupCount(count);

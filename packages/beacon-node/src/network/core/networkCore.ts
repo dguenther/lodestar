@@ -359,8 +359,8 @@ export class NetworkCore implements INetworkCore {
     return recipients.length;
   }
 
-  async setSamplingGroupCount(count: number): Promise<void> {
-    this.networkConfig.setSamplingGroupCount(count);
+  async setTargetGroupCount(count: number): Promise<void> {
+    this.networkConfig.setTargetGroupCount(count);
   }
 
   async setAdvertisedGroupCount(count: number): Promise<void> {

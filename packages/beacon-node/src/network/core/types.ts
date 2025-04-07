@@ -54,7 +54,7 @@ export interface INetworkCore extends INetworkCorePublic {
   /** Chain must push status updates to the network core */
   updateStatus(status: phase0.Status): Promise<void>;
 
-  setSamplingGroupCount(count: number): Promise<void>;
+  setTargetGroupCount(count: number): Promise<void>;
   setAdvertisedGroupCount(count: number): Promise<void>;
   /** Opens stream to handle ReqResp outgoing request */
   sendReqRespRequest(data: OutgoingRequestArgs): AsyncIterable<ResponseIncoming>;
@@ -103,7 +103,7 @@ export type NetworkWorkerApi = INetworkCorePublic & {
   getConnectedPeerCount(): Promise<number>;
   updateStatus(status: phase0.Status): Promise<void>;
 
-  setSamplingGroupCount(count: number): Promise<void>;
+  setTargetGroupCount(count: number): Promise<void>;
   setAdvertisedGroupCount(count: number): Promise<void>;
 
   // sendReqRespRequest - implemented via events

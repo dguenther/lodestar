@@ -1,6 +1,6 @@
 import {BeaconConfig} from "@lodestar/config";
 import {NodeId, computeNodeId} from "./subnets";
-import {CustodyConfig, getCustodyGroups, getDataColumns, computeSubnetForDataColumn} from "../util/dataColumns";
+import {CustodyConfig} from "../util/dataColumns";
 import {PeerId} from "@libp2p/interface";
 
 /**
@@ -26,13 +26,11 @@ export class NetworkConfig {
     return this.nodeId;
   }
 
-  setSamplingGroupCount(count: number): void {
-    this.custodyConfig.sampleGroups = getCustodyGroups(this.nodeId, count);
-    this.custodyConfig.sampledColumns = getDataColumns(this.nodeId, count);
-    this.custodyConfig.sampledSubnets = this.custodyConfig.sampledColumns.map(computeSubnetForDataColumn);
+  setTargetGroupCount(count: number): void {
+    this.custodyConfig.updateTargetCustodyGroupCount(count);
   }
 
   setAdvertisedGroupCount(count: number): void {
-    this.custodyConfig.advertisedCustodyGroupCount = count;
+    this.custodyConfig.updateAdvertisedCustodyGroupCount(count);
   }
 }

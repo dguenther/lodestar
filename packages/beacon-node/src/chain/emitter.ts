@@ -35,9 +35,9 @@ export enum ChainEvent {
    */
   forkChoiceFinalized = "forkChoice:finalized",
   /**
-   * This event signals that sampling should update to include the given group count.
+   * This event signals that dependent services (e.g. custody sampling) should update to account for the new target group count.
    */
-  updateSampledGroupCount = "updateSampledGroupCount",
+  updateTargetGroupCount = "updateTargetGroupCount",
   /**
    * This event signals that the chain is ready to advertise the given group count to the network.
    */
@@ -56,7 +56,7 @@ export type IChainEvents = ApiEvents & {
   [ChainEvent.forkChoiceJustified]: (checkpoint: CheckpointWithHex) => void;
   [ChainEvent.forkChoiceFinalized]: (checkpoint: CheckpointWithHex) => void;
 
-  [ChainEvent.updateSampledGroupCount]: (sampledGroupCount: number) => void;
+  [ChainEvent.updateTargetGroupCount]: (targetGroupCount: number) => void;
   [ChainEvent.updateAdvertisedGroupCount]: (advertisedGroupCount: number) => void;
 };
 
