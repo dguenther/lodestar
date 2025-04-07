@@ -28,11 +28,11 @@ import {
   phase0,
 } from "@lodestar/types";
 import {sleep} from "@lodestar/utils";
-import {IBeaconChain} from "../chain/index.js";
+import {ChainEvent, IBeaconChain} from "../chain/index.js";
 import {IBeaconDb} from "../db/interface.js";
 import {Metrics, RegistryMetricCreator} from "../metrics/index.js";
 import {IClock} from "../util/clock.js";
-import {CustodyConfig, CustodyEvent} from "../util/dataColumns.js";
+import {CustodyConfig} from "../util/dataColumns.js";
 import {PeerIdStr, peerIdToString} from "../util/peerId.js";
 import {BlobSidecarsByRootRequest} from "../util/types.js";
 import {INetworkCore, NetworkCore, WorkerNetworkCore} from "./core/index.js";
@@ -139,8 +139,8 @@ export class Network implements INetwork {
     this.chain.emitter.on(routes.events.EventType.lightClientOptimisticUpdate, ({data}) =>
       this.onLightClientOptimisticUpdate(data)
     );
-    this.custodyConfig.emitter.on(CustodyEvent.samplingGroupCountUpdated, this.onSamplingGroupCountUpdated);
-    this.custodyConfig.emitter.on(CustodyEvent.advertisedGroupCountUpdated, this.onAdvertisedGroupCountUpdated);
+    this.chain.emitter.on(ChainEvent.updateSampledGroupCount, this.onSamplingGroupCountUpdated);
+    this.chain.emitter.on(ChainEvent.updateAdvertisedGroupCount, this.onAdvertisedGroupCountUpdated);
   }
 
   static async init({
@@ -240,8 +240,8 @@ export class Network implements INetwork {
     this.chain.emitter.off(routes.events.EventType.head, this.onHead);
     this.chain.emitter.off(routes.events.EventType.lightClientFinalityUpdate, this.onLightClientFinalityUpdate);
     this.chain.emitter.off(routes.events.EventType.lightClientOptimisticUpdate, this.onLightClientOptimisticUpdate);
-    this.custodyConfig.emitter.off(CustodyEvent.samplingGroupCountUpdated, this.onSamplingGroupCountUpdated);
-    this.custodyConfig.emitter.off(CustodyEvent.advertisedGroupCountUpdated, this.onAdvertisedGroupCountUpdated);
+    this.chain.emitter.off(ChainEvent.updateSampledGroupCount, this.onSamplingGroupCountUpdated);
+    this.chain.emitter.off(ChainEvent.updateAdvertisedGroupCount, this.onAdvertisedGroupCountUpdated);
     await this.core.close();
     this.logger.debug("network core closed");
   }

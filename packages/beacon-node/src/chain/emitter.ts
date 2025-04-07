@@ -34,6 +34,14 @@ export enum ChainEvent {
    * This event is guaranteed to be triggered whenever the fork choice justified checkpoint is updated. This is in response to a newly processed block.
    */
   forkChoiceFinalized = "forkChoice:finalized",
+  /**
+   * This event signals that sampling should update to include the given group count.
+   */
+  updateSampledGroupCount = "updateSampledGroupCount",
+  /**
+   * This event signals that the chain is ready to advertise the given group count to the network.
+   */
+  updateAdvertisedGroupCount = "updateAdvertisedGroupCount",
 }
 
 export type HeadEventData = routes.events.EventData[routes.events.EventType.head];
@@ -47,6 +55,9 @@ export type IChainEvents = ApiEvents & {
 
   [ChainEvent.forkChoiceJustified]: (checkpoint: CheckpointWithHex) => void;
   [ChainEvent.forkChoiceFinalized]: (checkpoint: CheckpointWithHex) => void;
+
+  [ChainEvent.updateSampledGroupCount]: (sampledGroupCount: number) => void;
+  [ChainEvent.updateAdvertisedGroupCount]: (advertisedGroupCount: number) => void;
 };
 
 /**

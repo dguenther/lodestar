@@ -1195,6 +1195,8 @@ export class BeaconChain implements IBeaconChain {
       // Update custody requirement based on finalized state
       const validatorIndices = this.beaconProposerCache.getValidatorIndices();
       this.custodyConfig.updateCustodyRequirement(headState, validatorIndices);
+      this.emitter.emit(ChainEvent.updateSampledGroupCount, this.custodyConfig.sampledGroupCount);
+      this.emitter.emit(ChainEvent.updateAdvertisedGroupCount, this.custodyConfig.advertisedCustodyGroupCount);
     }
 
     if (headState === null) {

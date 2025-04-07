@@ -11,12 +11,7 @@ import {afterEach, beforeAll, beforeEach, describe, expect, it} from "vitest";
 
 import {validateDataColumnsSidecars} from "../../../src/chain/validation/dataColumnSidecar.js";
 import {computeDataColumnSidecars} from "../../../src/util/blobs.js";
-import {
-  CustodyConfig,
-  getDataColumns,
-  getValidatorsCustodyRequirement,
-  CustodyEvent,
-} from "../../../src/util/dataColumns.js";
+import {CustodyConfig, getDataColumns, getValidatorsCustodyRequirement} from "../../../src/util/dataColumns.js";
 import {ckzg, initCKZG, loadEthereumTrustedSetup} from "../../../src/util/kzg.js";
 import {getMockedBeaconChain} from "../../mocks/mockedBeaconChain.js";
 import {generateRandomBlob, transactionForKzgCommitment} from "../../utils/kzg.js";
@@ -120,42 +115,6 @@ describe("CustodyConfig", () => {
   });
 
   describe("updateCustodyRequirement", () => {
-    it("should emit events when appropriate", () => {
-      const custodyConfig = new CustodyConfig(nodeId, config);
-
-      // Set up event listeners
-      const samplingGroupCounts: number[] = [];
-      const advertisedGroupCounts: number[] = [];
-
-      custodyConfig.emitter.on(CustodyEvent.samplingGroupCountUpdated, (count) => {
-        samplingGroupCounts.push(count);
-      });
-
-      custodyConfig.emitter.on(CustodyEvent.advertisedGroupCountUpdated, (count) => {
-        advertisedGroupCounts.push(count);
-      });
-
-      // Call updateCustodyRequirement with validators that will trigger changes
-      custodyConfig.updateCustodyRequirement(state, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
-
-      // Verify events were emitted with correct values
-      expect(samplingGroupCounts).toHaveLength(1);
-      expect(samplingGroupCounts[0]).toBe(10); // 10 validators with 32 ETH each = 320 ETH total
-      expect(advertisedGroupCounts).toHaveLength(1);
-      expect(advertisedGroupCounts[0]).toBe(10);
-
-      // Clear the arrays to remove events from first call
-      samplingGroupCounts.length = 0;
-      advertisedGroupCounts.length = 0;
-
-      // Second call with same validators should not trigger changes
-      custodyConfig.updateCustodyRequirement(state, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
-
-      // Verify no new events were emitted
-      expect(samplingGroupCounts).toHaveLength(0);
-      expect(advertisedGroupCounts).toHaveLength(0);
-    });
-
     it("should update advertised, target, and sampled group counts", () => {
       const custodyConfig = new CustodyConfig(nodeId, config);
 

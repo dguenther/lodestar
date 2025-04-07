@@ -6,24 +6,8 @@ import {ssz} from "@lodestar/types";
 import {bytesToBigInt} from "@lodestar/utils";
 import {NodeId} from "../network/subnets/index.js";
 import {CachedBeaconStateAllForks} from "@lodestar/state-transition";
-import EventEmitter from "node:events";
-import StrictEventEmitter from "strict-event-emitter-types";
-
-export enum CustodyEvent {
-  samplingGroupCountUpdated = "samplingGroupCountUpdated",
-  advertisedGroupCountUpdated = "advertisedGroupCountUpdated",
-}
-
-type ICustodyEvents = {
-  [CustodyEvent.samplingGroupCountUpdated]: (samplingGroupCount: number) => void;
-  [CustodyEvent.advertisedGroupCountUpdated]: (advertisedGroupCount: number) => void;
-};
-
-class CustodyEventEmitter extends (EventEmitter as {new (): StrictEventEmitter<EventEmitter, ICustodyEvents>}) {}
 
 export class CustodyConfig {
-  readonly emitter = new CustodyEventEmitter();
-
   /**
    * The number of custody groups the node should subscribe to
    */
@@ -73,9 +57,6 @@ export class CustodyConfig {
   }
 
   updateCustodyRequirement(state: CachedBeaconStateAllForks, validatorIndices: ValidatorIndex[]) {
-    const oldSampledGroupCount = this.sampledGroupCount;
-    const oldAdvertisedGroupCount = this.advertisedCustodyGroupCount;
-
     this.targetCustodyGroupCount = getValidatorsCustodyRequirement(state, validatorIndices, this.config);
     this.custodyColumns = getDataColumns(this.nodeId, this.targetCustodyGroupCount);
     this.custodyColumnsIndex = this.getCustodyColumnsIndex(this.custodyColumns);
@@ -84,16 +65,9 @@ export class CustodyConfig {
     this.sampledGroupCount = Math.max(this.targetCustodyGroupCount, this.config.SAMPLES_PER_SLOT);
     this.sampledColumns = getDataColumns(this.nodeId, this.sampledGroupCount);
 
-    if (oldSampledGroupCount !== this.sampledGroupCount) {
-      this.emitter.emit(CustodyEvent.samplingGroupCountUpdated, this.sampledGroupCount);
-    }
-
-    this.advertisedCustodyGroupCount = this.targetCustodyGroupCount;
     // TODO: If target group count increases, we should wait to update the advertised group until we've
     // backfilled the new groups.
-    if (oldAdvertisedGroupCount !== this.advertisedCustodyGroupCount) {
-      this.emitter.emit(CustodyEvent.advertisedGroupCountUpdated, this.advertisedCustodyGroupCount);
-    }
+    this.advertisedCustodyGroupCount = this.targetCustodyGroupCount;
   }
 
   private getCustodyColumnsIndex(custodyColumns: ColumnIndex[]): Uint8Array {
