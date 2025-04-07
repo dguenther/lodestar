@@ -1,7 +1,7 @@
-import {PeerId} from "@libp2p/interface";
 import {BeaconConfig} from "@lodestar/config";
-import {CustodyConfig} from "../util/dataColumns";
 import {NodeId, computeNodeId} from "./subnets";
+import {CustodyConfig, getCustodyGroups, getDataColumns, computeSubnetForDataColumn} from "../util/dataColumns";
+import {PeerId} from "@libp2p/interface";
 
 /**
  * Store shared data for different modules in the network stack.
@@ -10,7 +10,8 @@ import {NodeId, computeNodeId} from "./subnets";
 export class NetworkConfig {
   private readonly nodeId: NodeId;
   private readonly config: BeaconConfig;
-  private custodyConfig: CustodyConfig;
+  readonly custodyConfig: CustodyConfig;
+
   constructor(peerId: PeerId, config: BeaconConfig) {
     this.nodeId = computeNodeId(peerId);
     this.config = config;
@@ -25,17 +26,13 @@ export class NetworkConfig {
     return this.nodeId;
   }
 
-  /**
-   * Consumer should never mutate returned CustodyConfig
-   */
-  getCustodyConfig(): CustodyConfig {
-    return this.custodyConfig;
+  setSamplingGroupCount(count: number): void {
+    this.custodyConfig.sampleGroups = getCustodyGroups(this.nodeId, count);
+    this.custodyConfig.sampledColumns = getDataColumns(this.nodeId, count);
+    this.custodyConfig.sampledSubnets = this.custodyConfig.sampledColumns.map(computeSubnetForDataColumn);
   }
 
-  /**
-   * Recompute CustodyConfig based on connected validators.
-   */
-  recomputeCustodyConfig(): void {
-    // TODO - das
+  setAdvertisedGroupCount(count: number): void {
+    this.custodyConfig.advertisedCustodyGroupCount = count;
   }
 }

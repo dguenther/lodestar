@@ -110,7 +110,6 @@ export type PeerManagerModules = {
   networkConfig: NetworkConfig;
   peersData: PeersData;
   statusCache: StatusCache;
-  initialSamplingGroupCount: number;
 };
 
 export type PeerRequestedSubnetType = SubnetType | "column";
@@ -133,8 +132,6 @@ enum RelevantPeerStatus {
  */
 export class PeerManager {
   private nodeId: NodeId;
-  private sampleSubnets: number[];
-  private samplingGroups: CustodyIndex[];
   private readonly libp2p: Libp2p;
   private readonly logger: LoggerNode;
   private readonly metrics: NetworkCoreMetrics | null;
@@ -143,6 +140,7 @@ export class PeerManager {
   private readonly attnetsService: SubnetsService;
   private readonly syncnetsService: SubnetsService;
   private readonly clock: IClock;
+  private readonly networkConfig: NetworkConfig;
   private readonly config: BeaconConfig;
   private readonly peerRpcScores: IPeerRpcScoreStore;
   /** If null, discovery is disabled */
@@ -158,7 +156,6 @@ export class PeerManager {
 
   constructor(modules: PeerManagerModules, opts: PeerManagerOpts, discovery: PeerDiscovery | null) {
     const {networkConfig} = modules;
-    const custodyConfig = networkConfig.getCustodyConfig();
     this.libp2p = modules.libp2p;
     this.logger = modules.logger;
     this.metrics = modules.metrics;
@@ -168,6 +165,7 @@ export class PeerManager {
     this.syncnetsService = modules.syncnetsService;
     this.statusCache = modules.statusCache;
     this.clock = modules.clock;
+    this.networkConfig = networkConfig;
     this.config = networkConfig.getConfig();
     this.peerRpcScores = modules.peerRpcScores;
     this.networkEventBus = modules.events;
@@ -175,12 +173,6 @@ export class PeerManager {
     this.opts = opts;
     this.discovery = discovery;
     this.nodeId = networkConfig.getNodeId();
-    // we will only connect to peers that can provide us custody
-    // TODO: @matthewkeil check if this needs to be updated for custody groups
-    // TODO(das): may not need this, use `this.samplingGroups` instead
-    this.sampleSubnets = custodyConfig.sampledSubnets;
-    // TODO(das): get from custodyConfig or a centralized place every time, instead of computing once here
-    this.samplingGroups = custodyConfig.sampleGroups;
 
     const {metrics} = modules;
     if (metrics) {
@@ -228,12 +220,6 @@ export class PeerManager {
     );
     this.networkEventBus.off(NetworkEvent.reqRespRequest, this.onRequest);
     for (const interval of this.intervals) clearInterval(interval);
-  }
-
-  setSamplingGroupCount(count: number): void {
-    this.sampleSubnets = getDataColumns(this.nodeId, count);
-    this.samplingGroups = getCustodyGroups(this.nodeId, count);
-    this.discovery?.setSamplingGroupCount(count);
   }
 
   /**
@@ -438,11 +424,9 @@ export class PeerManager {
       // on metadata, we should have custodyGroupss
       const peerCustodyGroups = peerData?.metadata?.custodyGroups ?? getCustodyGroups(nodeId, peerCustodyGroupCount);
 
-      const matchingSubnetsNum = this.sampleSubnets.reduce(
-        (acc, elem) => acc + (dataColumns.includes(elem) ? 1 : 0),
-        0
-      );
-      const hasAllColumns = matchingSubnetsNum === this.sampleSubnets.length;
+      const sampleSubnets = this.networkConfig.custodyConfig.sampledSubnets;
+      const matchingSubnetsNum = sampleSubnets.reduce((acc, elem) => acc + (dataColumns.includes(elem) ? 1 : 0), 0);
+      const hasAllColumns = matchingSubnetsNum === sampleSubnets.length;
       const hasMinCustodyMatchingColumns = matchingSubnetsNum >= this.config.CUSTODY_REQUIREMENT;
       const clientAgent = peerData?.agentClient ?? ClientKind.Unknown;
 
@@ -455,7 +439,7 @@ export class PeerManager {
         dataColumns: dataColumns.join(" "),
         matchingSubnetsNum,
         peerCustodyGroups: peerCustodyGroups.join(" "),
-        mySampleSubnets: this.sampleSubnets.join(" "),
+        mySampleSubnets: sampleSubnets.join(" "),
         clientAgent,
       });
 
@@ -572,7 +556,7 @@ export class PeerManager {
       this.attnetsService.getActiveSubnets(),
       this.syncnetsService.getActiveSubnets(),
       // ignore samplingGroups for pre-fulu forks
-      forkSeq >= ForkSeq.fulu ? this.samplingGroups : undefined,
+      forkSeq >= ForkSeq.fulu ? this.networkConfig.custodyConfig.sampleGroups : undefined,
       this.opts,
       this.metrics
     );

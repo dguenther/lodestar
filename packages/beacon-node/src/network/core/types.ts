@@ -80,8 +80,6 @@ export type NetworkWorkerData = {
   genesisTime: number;
   activeValidatorCount: number;
   initialStatus: phase0.Status;
-  initialSamplingGroupCount: number;
-  initialAdvertisedGroupCount: number;
   peerIdProto: Uint8Array;
   localMultiaddrs: string[];
   metricsEnabled: boolean;

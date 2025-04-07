@@ -66,8 +66,6 @@ export type BaseNetworkInit = {
   getReqRespHandler: GetReqRespHandlerFn;
   activeValidatorCount: number;
   initialStatus: phase0.Status;
-  initialSamplingGroupCount: number;
-  initialAdvertisedGroupCount: number;
 };
 
 /**
@@ -141,8 +139,6 @@ export class NetworkCore implements INetworkCore {
     getReqRespHandler,
     activeValidatorCount,
     initialStatus,
-    initialSamplingGroupCount,
-    initialAdvertisedGroupCount,
   }: BaseNetworkInit): Promise<NetworkCore> {
     const libp2p = await createNodeJsLibp2p(peerId, opts, {
       peerStoreDir,
@@ -162,7 +158,8 @@ export class NetworkCore implements INetworkCore {
     const onMetadataSetValue = function onMetadataSetValue(key: string, value: Uint8Array): void {
       discv5?.setEnrValue(key, value).catch((e) => logger.error("error on setEnrValue", {key}, e));
     };
-    const metadata = new MetadataController({}, {config, onSetValue: onMetadataSetValue, initialAdvertisedGroupCount});
+    const networkConfig = new NetworkConfig(peerId, config);
+    const metadata = new MetadataController({}, {networkConfig, onSetValue: onMetadataSetValue});
 
     const reqResp = new ReqRespBeaconNode(
       {
@@ -201,7 +198,6 @@ export class NetworkCore implements INetworkCore {
     // should be called before AttnetsService constructor so that node subscribe to deterministic attnet topics
     await gossip.start();
 
-    const networkConfig = new NetworkConfig(peerId, config);
     const attnetsService = new AttnetsService(
       config,
       clock,
@@ -229,7 +225,6 @@ export class NetworkCore implements INetworkCore {
         networkConfig: networkConfig,
         peersData,
         statusCache,
-        initialSamplingGroupCount,
       },
       opts
     );
@@ -365,10 +360,11 @@ export class NetworkCore implements INetworkCore {
   }
 
   async setSamplingGroupCount(count: number): Promise<void> {
-    this.peerManager.setSamplingGroupCount(count);
+    this.networkConfig.setSamplingGroupCount(count);
   }
 
   async setAdvertisedGroupCount(count: number): Promise<void> {
+    this.networkConfig.setAdvertisedGroupCount(count);
     this.metadata.cgc = count;
   }
 
