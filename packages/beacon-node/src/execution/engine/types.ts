@@ -10,6 +10,7 @@ import {
 } from "@lodestar/params";
 import {ExecutionPayload, ExecutionRequests, Root, Wei, bellatrix, capella, deneb, electra, ssz} from "@lodestar/types";
 import {BlobAndProof} from "@lodestar/types/deneb";
+import {BlobAndProofV2} from "@lodestar/types/fulu";
 
 import {
   DATA,
@@ -80,6 +81,7 @@ export type EngineApiRpcParamTypes = {
   engine_getClientVersionV1: [ClientVersionRpc];
 
   engine_getBlobsV1: [DATA[]];
+  engine_getBlobsV2: [DATA[]];
 };
 
 export type PayloadStatus = {
@@ -123,7 +125,8 @@ export type EngineApiRpcReturnTypes = {
 
   engine_getClientVersionV1: ClientVersionRpc[];
 
-  engine_getBlobsV1: (BlobAndProofRpc | null)[];
+  engine_getBlobsV1: (BlobAndProofV1Rpc | null)[];
+  engine_getBlobsV2: BlobAndProofV2Rpc[];
 };
 
 type ExecutionPayloadRpcWithValue = {
@@ -186,9 +189,14 @@ export type DepositRequestsRpc = DATA;
 export type WithdrawalRequestsRpc = DATA;
 export type ConsolidationRequestsRpc = DATA;
 
-export type BlobAndProofRpc = {
+export type BlobAndProofV1Rpc = {
   blob: DATA;
   proof: DATA;
+};
+
+export type BlobAndProofV2Rpc = {
+  blob: DATA;
+  proofs: DATA[];
 };
 
 export type VersionedHashesRpc = DATA[];
@@ -554,13 +562,20 @@ export function serializeExecutionPayloadBody(data: ExecutionPayloadBody | null)
     : null;
 }
 
-export function deserializeBlobAndProofs(data: BlobAndProofRpc | null): BlobAndProof | null {
+export function deserializeBlobAndProofs(data: BlobAndProofV1Rpc | null): BlobAndProof | null {
   return data
     ? {
         blob: dataToBytes(data.blob, BYTES_PER_FIELD_ELEMENT * FIELD_ELEMENTS_PER_BLOB),
         proof: dataToBytes(data.proof, 48),
       }
     : null;
+}
+
+export function deserializeBlobAndProofsV2(data: BlobAndProofV2Rpc): BlobAndProofV2 {
+  return {
+    blob: dataToBytes(data.blob, BYTES_PER_FIELD_ELEMENT * FIELD_ELEMENTS_PER_BLOB),
+    proofs: data.proofs.map((proof) => dataToBytes(proof, 48)),
+  };
 }
 
 export function assertReqSizeLimit(blockHashesReqCount: number, count: number): void {

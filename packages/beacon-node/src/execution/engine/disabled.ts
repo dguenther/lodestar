@@ -32,4 +32,8 @@ export class ExecutionEngineDisabled implements IExecutionEngine {
   getBlobs(): Promise<never> {
     throw Error("Execution engine disabled");
   }
+
+  getBlobsV2(): Promise<never> {
+    throw Error("Execution engine disabled");
+  }
 }

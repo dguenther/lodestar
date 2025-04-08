@@ -2,6 +2,7 @@ import {Logger} from "@lodestar/logger";
 import {ForkName, ForkSeq, SLOTS_PER_EPOCH} from "@lodestar/params";
 import {ExecutionPayload, ExecutionRequests, Root, RootHex, Wei} from "@lodestar/types";
 import {BlobAndProof} from "@lodestar/types/deneb";
+import {BlobAndProofV2} from "@lodestar/types/fulu";
 import {strip0xPrefix} from "@lodestar/utils";
 import {
   ErrorJsonRpcResponse,
@@ -35,6 +36,7 @@ import {
   ExecutionPayloadBody,
   assertReqSizeLimit,
   deserializeBlobAndProofs,
+  deserializeBlobAndProofsV2,
   deserializeExecutionPayloadBody,
   parseExecutionPayload,
   serializeBeaconBlockRoot,
@@ -515,6 +517,61 @@ export class ExecutionEngineHttp implements IExecutionEngine {
     }
 
     return response.map(deserializeBlobAndProofs);
+  }
+
+  async getBlobsV2(fork: ForkName, versionedHashes: VersionedHashes): Promise<BlobAndProofV2[]> {
+    if (ForkSeq[fork] < ForkSeq.fulu) {
+      throw Error(`engine_getBlobsV2 not available for fork=${fork}`);
+    }
+
+    // retry only after a day may be
+    const GETBLOBS_RETRY_TIMEOUT = 256 * 32 * 12;
+    const timeNow = Date.now() / 1000;
+    const timeSinceLastFail = timeNow - this.lastGetBlobsErrorTime;
+    if (timeSinceLastFail < GETBLOBS_RETRY_TIMEOUT) {
+      // do not try getblobs since it might not be available
+      this.logger.debug(
+        `disabled engine_getBlobsV2 api call since last failed < GETBLOBS_RETRY_TIMEOUT=${GETBLOBS_RETRY_TIMEOUT}`,
+        timeSinceLastFail
+      );
+      throw Error(
+        `engine_getBlobsV2 call recently failed timeSinceLastFail=${timeSinceLastFail} < GETBLOBS_RETRY_TIMEOUT=${GETBLOBS_RETRY_TIMEOUT}`
+      );
+    }
+
+    const method = "engine_getBlobsV2";
+    assertReqSizeLimit(versionedHashes.length, 128);
+    const versionedHashesHex = versionedHashes.map(bytesToData);
+    let response = await this.rpc
+      .fetchWithRetries<EngineApiRpcReturnTypes[typeof method], EngineApiRpcParamTypes[typeof method]>({
+        method,
+        params: [versionedHashesHex],
+      })
+      .catch((e) => {
+        if (e instanceof ErrorJsonRpcResponse && parseJsonRpcErrorCode(e.response.error.code) === "Method not found") {
+          this.lastGetBlobsErrorTime = timeNow;
+          this.logger.debug("disabling engine_getBlobsV2 api call since engine responded with method not availeble", {
+            retryTimeout: GETBLOBS_RETRY_TIMEOUT,
+          });
+        }
+        throw e;
+      });
+
+    // handle nethermind buggy response
+    // see: https://discord.com/channels/595666850260713488/1293605631785304088/1298956894274060301
+    if (
+      (response as unknown as {blobsAndProofs: EngineApiRpcReturnTypes[typeof method]}).blobsAndProofs !== undefined
+    ) {
+      response = (response as unknown as {blobsAndProofs: EngineApiRpcReturnTypes[typeof method]}).blobsAndProofs;
+    }
+
+    if (response.length > 0 && response.length !== versionedHashes.length) {
+      const error = `Invalid engine_getBlobsV2 response length=${response.length} versionedHashes=${versionedHashes.length}`;
+      this.logger.error(error);
+      throw Error(error);
+    }
+
+    return response.map(deserializeBlobAndProofsV2);
   }
 
   private async getClientVersion(clientVersion: ClientVersion): Promise<ClientVersion[]> {
