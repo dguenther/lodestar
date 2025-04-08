@@ -542,7 +542,7 @@ export class ExecutionEngineHttp implements IExecutionEngine {
     const method = "engine_getBlobsV2";
     assertReqSizeLimit(versionedHashes.length, 128);
     const versionedHashesHex = versionedHashes.map(bytesToData);
-    let response = await this.rpc
+    const response = await this.rpc
       .fetchWithRetries<EngineApiRpcReturnTypes[typeof method], EngineApiRpcParamTypes[typeof method]>({
         method,
         params: [versionedHashesHex],
@@ -556,14 +556,6 @@ export class ExecutionEngineHttp implements IExecutionEngine {
         }
         throw e;
       });
-
-    // handle nethermind buggy response
-    // see: https://discord.com/channels/595666850260713488/1293605631785304088/1298956894274060301
-    if (
-      (response as unknown as {blobsAndProofs: EngineApiRpcReturnTypes[typeof method]}).blobsAndProofs !== undefined
-    ) {
-      response = (response as unknown as {blobsAndProofs: EngineApiRpcReturnTypes[typeof method]}).blobsAndProofs;
-    }
 
     if (response.length > 0 && response.length !== versionedHashes.length) {
       const error = `Invalid engine_getBlobsV2 response length=${response.length} versionedHashes=${versionedHashes.length}`;
