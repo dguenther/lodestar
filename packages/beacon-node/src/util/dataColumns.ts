@@ -12,10 +12,6 @@ import {bytesToBigInt} from "@lodestar/utils";
 import {NodeId} from "../network/subnets/index.js";
 import {CachedBeaconStateAllForks} from "@lodestar/state-transition";
 
-export type CustodyConfigOpts = {
-  enableValidatorCustody?: boolean;
-};
-
 export class CustodyConfig {
   /**
    * The number of custody groups the node should subscribe to
@@ -63,12 +59,10 @@ export class CustodyConfig {
 
   private config: ChainForkConfig;
   private nodeId: NodeId;
-  private opts: CustodyConfigOpts;
 
-  constructor(nodeId: NodeId, config: ChainForkConfig, opts: CustodyConfigOpts = {enableValidatorCustody: true}) {
+  constructor(nodeId: NodeId, config: ChainForkConfig) {
     this.config = config;
     this.nodeId = nodeId;
-    this.opts = opts;
     this.targetCustodyGroupCount = Math.max(config.CUSTODY_REQUIREMENT, config.NODE_CUSTODY_REQUIREMENT);
     this.custodyColumns = getDataColumns(this.nodeId, this.targetCustodyGroupCount);
     this.custodyColumnsIndex = this.getCustodyColumnsIndex(this.custodyColumns);
@@ -77,14 +71,6 @@ export class CustodyConfig {
     this.sampleGroups = getCustodyGroups(this.nodeId, this.sampledGroupCount);
     this.sampledColumns = getDataColumns(this.nodeId, this.sampledGroupCount);
     this.sampledSubnets = this.sampledColumns.map(computeSubnetForDataColumn);
-  }
-
-  calculateTargetCustodyGroupCount(state: CachedBeaconStateAllForks, validatorIndices: ValidatorIndex[]) {
-    if (!this.opts.enableValidatorCustody) {
-      return this.targetCustodyGroupCount;
-    }
-
-    return getValidatorsCustodyRequirement(state, validatorIndices, this.config);
   }
 
   updateTargetCustodyGroupCount(targetCustodyGroupCount: number) {
