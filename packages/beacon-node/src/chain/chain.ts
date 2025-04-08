@@ -251,11 +251,10 @@ export class BeaconChain implements IBeaconChain {
       this.opts?.preaggregateSlotDistance
     );
 
-    this.custodyConfig = new CustodyConfig(nodeId, config)
-
     this.seenAggregatedAttestations = new SeenAggregatedAttestations(metrics);
     this.seenContributionAndProof = new SeenContributionAndProof(metrics);
     this.seenAttestationDatas = new SeenAttestationDatas(metrics, this.opts?.attDataCacheSlotDistance);
+    this.custodyConfig = new CustodyConfig(nodeId, config);
     this.seenGossipBlockInput = new SeenGossipBlockInput(this.custodyConfig);
 
     this.beaconProposerCache = new BeaconProposerCache(opts);

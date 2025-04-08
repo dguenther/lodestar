@@ -102,7 +102,7 @@ export class CustodyConfig {
   }
 }
 
-export function computeSubnetForDataColumn(columnIndex: ColumnIndex): number {
+function computeSubnetForDataColumn(columnIndex: ColumnIndex): number {
   return columnIndex % DATA_COLUMN_SIDECAR_SUBNET_COUNT;
 }
 
