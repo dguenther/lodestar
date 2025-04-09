@@ -497,7 +497,7 @@ export class ExecutionEngineHttp implements IExecutionEngine {
     // https://github.com/ethereum/execution-apis/blob/main/src/engine/cancun.md#specification-3
     assertReqSizeLimit(versionedHashes.length, 128);
     const versionedHashesHex = versionedHashes.map(bytesToData);
-    const response = await this.rpc
+    let response = await this.rpc
       .fetchWithRetries<EngineApiRpcReturnTypes[typeof method], EngineApiRpcParamTypes[typeof method]>({
         method,
         params: [versionedHashesHex],
@@ -515,6 +515,15 @@ export class ExecutionEngineHttp implements IExecutionEngine {
         }
         throw e;
       });
+
+    // handle nethermind buggy response
+    // see: https://discord.com/channels/595666850260713488/1293605631785304088/1298956894274060301
+    if (
+      method === "engine_getBlobsV1" &&
+      (response as unknown as {blobsAndProofs: EngineApiRpcReturnTypes[typeof method]}).blobsAndProofs !== undefined
+    ) {
+      response = (response as unknown as {blobsAndProofs: EngineApiRpcReturnTypes[typeof method]}).blobsAndProofs;
+    }
 
     // engine_getBlobsV2 does not return partial responses. It returns an empty array if any blob is not found
     const invalidLength =
