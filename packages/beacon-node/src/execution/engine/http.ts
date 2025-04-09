@@ -117,7 +117,8 @@ const getPayloadOpts: ReqOpts = {routeId: "getPayload"};
  */
 export class ExecutionEngineHttp implements IExecutionEngine {
   private logger: Logger;
-  private lastGetBlobsErrorTime = 0;
+  private lastGetBlobsV1ErrorTime = 0;
+  private lastGetBlobsV2ErrorTime = 0;
 
   // The default state is ONLINE, it will be updated to SYNCING once we receive the first payload
   // This assumption is better than the OFFLINE state, since we can't be sure if the EL is offline and being offline may trigger some notifications
@@ -476,17 +477,44 @@ export class ExecutionEngineHttp implements IExecutionEngine {
   ): Promise<BlobAndProofV2[] | (BlobAndProof | null)[]> {
     const method = isForkPostFulu(fork) ? "engine_getBlobsV2" : "engine_getBlobsV1";
 
+    // retry only after a day may be
+    const GETBLOBS_RETRY_TIMEOUT = 256 * 32 * 12;
+    const timeNow = Date.now() / 1000;
+    const timeSinceLastFail =
+      timeNow - (isForkPostFulu(fork) ? this.lastGetBlobsV2ErrorTime : this.lastGetBlobsV1ErrorTime);
+    if (timeSinceLastFail < GETBLOBS_RETRY_TIMEOUT) {
+      // do not try getblobs since it might not be available
+      this.logger.debug(
+        `disabled ${method} api call since last failed < GETBLOBS_RETRY_TIMEOUT=${GETBLOBS_RETRY_TIMEOUT}`,
+        timeSinceLastFail
+      );
+      throw Error(
+        `${method} call recently failed timeSinceLastFail=${timeSinceLastFail} < GETBLOBS_RETRY_TIMEOUT=${GETBLOBS_RETRY_TIMEOUT}`
+      );
+    }
+
     // Clients must support at least 128 versionedHashes, so we avoid sending more
     // https://github.com/ethereum/execution-apis/blob/main/src/engine/cancun.md#specification-3
     assertReqSizeLimit(versionedHashes.length, 128);
     const versionedHashesHex = versionedHashes.map(bytesToData);
-    const response = await this.rpc.fetchWithRetries<
-      EngineApiRpcReturnTypes[typeof method],
-      EngineApiRpcParamTypes[typeof method]
-    >({
-      method,
-      params: [versionedHashesHex],
-    });
+    const response = await this.rpc
+      .fetchWithRetries<EngineApiRpcReturnTypes[typeof method], EngineApiRpcParamTypes[typeof method]>({
+        method,
+        params: [versionedHashesHex],
+      })
+      .catch((e) => {
+        if (e instanceof ErrorJsonRpcResponse && parseJsonRpcErrorCode(e.response.error.code) === "Method not found") {
+          if (isForkPostFulu(fork)) {
+            this.lastGetBlobsV2ErrorTime = timeNow;
+          } else {
+            this.lastGetBlobsV1ErrorTime = timeNow;
+          }
+          this.logger.debug(`disabling ${method} api call since engine responded with method not available`, {
+            retryTimeout: GETBLOBS_RETRY_TIMEOUT,
+          });
+        }
+        throw e;
+      });
 
     // engine_getBlobsV2 does not return partial responses. It returns an empty array if any blob is not found
     const invalidLength =
