@@ -1,5 +1,5 @@
 import {Logger} from "@lodestar/logger";
-import {ForkName, ForkSeq, SLOTS_PER_EPOCH} from "@lodestar/params";
+import {ForkName, ForkPostFulu, ForkPreFulu, ForkSeq, isForkPostFulu, SLOTS_PER_EPOCH} from "@lodestar/params";
 import {ExecutionPayload, ExecutionRequests, Root, RootHex, Wei} from "@lodestar/types";
 import {BlobAndProof} from "@lodestar/types/deneb";
 import {BlobAndProofV2} from "@lodestar/types/fulu";
@@ -468,102 +468,42 @@ export class ExecutionEngineHttp implements IExecutionEngine {
     return response.map(deserializeExecutionPayloadBody);
   }
 
-  async getBlobs(_fork: ForkName, versionedHashes: VersionedHashes): Promise<(BlobAndProof | null)[]> {
-    // retry only after a day may be
-    const GETBLOBS_RETRY_TIMEOUT = 256 * 32 * 12;
-    const timeNow = Date.now() / 1000;
-    const timeSinceLastFail = timeNow - this.lastGetBlobsErrorTime;
-    if (timeSinceLastFail < GETBLOBS_RETRY_TIMEOUT) {
-      // do not try getblobs since it might not be available
-      this.logger.debug(
-        `disabled engine_getBlobsV1 api call since last failed < GETBLOBS_RETRY_TIMEOUT=${GETBLOBS_RETRY_TIMEOUT}`,
-        timeSinceLastFail
-      );
-      throw Error(
-        `engine_getBlobsV1 call recently failed timeSinceLastFail=${timeSinceLastFail} < GETBLOBS_RETRY_TIMEOUT=${GETBLOBS_RETRY_TIMEOUT}`
-      );
-    }
+  async getBlobs(fork: ForkPostFulu, versionedHashes: VersionedHashes): Promise<BlobAndProofV2[]>;
+  async getBlobs(fork: ForkPreFulu, versionedHashes: VersionedHashes): Promise<(BlobAndProof | null)[]>;
+  async getBlobs(
+    fork: ForkName,
+    versionedHashes: VersionedHashes
+  ): Promise<BlobAndProofV2[] | (BlobAndProof | null)[]> {
+    const method = isForkPostFulu(fork) ? "engine_getBlobsV2" : "engine_getBlobsV1";
 
-    const method = "engine_getBlobsV1";
+    // Clients must support at least 128 versionedHashes, so we avoid sending more
+    // https://github.com/ethereum/execution-apis/blob/main/src/engine/cancun.md#specification-3
     assertReqSizeLimit(versionedHashes.length, 128);
     const versionedHashesHex = versionedHashes.map(bytesToData);
-    let response = await this.rpc
-      .fetchWithRetries<EngineApiRpcReturnTypes[typeof method], EngineApiRpcParamTypes[typeof method]>({
-        method,
-        params: [versionedHashesHex],
-      })
-      .catch((e) => {
-        if (e instanceof ErrorJsonRpcResponse && parseJsonRpcErrorCode(e.response.error.code) === "Method not found") {
-          this.lastGetBlobsErrorTime = timeNow;
-          this.logger.debug("disabling engine_getBlobsV1 api call since engine responded with method not availeble", {
-            retryTimeout: GETBLOBS_RETRY_TIMEOUT,
-          });
-        }
-        throw e;
-      });
+    const response = await this.rpc.fetchWithRetries<
+      EngineApiRpcReturnTypes[typeof method],
+      EngineApiRpcParamTypes[typeof method]
+    >({
+      method,
+      params: [versionedHashesHex],
+    });
 
-    // handle nethermind buggy response
-    // see: https://discord.com/channels/595666850260713488/1293605631785304088/1298956894274060301
-    if (
-      (response as unknown as {blobsAndProofs: EngineApiRpcReturnTypes[typeof method]}).blobsAndProofs !== undefined
-    ) {
-      response = (response as unknown as {blobsAndProofs: EngineApiRpcReturnTypes[typeof method]}).blobsAndProofs;
-    }
+    // engine_getBlobsV2 does not return partial responses. It returns an empty array if any blob is not found
+    const invalidLength =
+      method === "engine_getBlobsV2"
+        ? response.length > 0 && response.length !== versionedHashes.length
+        : response.length !== versionedHashes.length;
 
-    if (response.length !== versionedHashes.length) {
-      const error = `Invalid engine_getBlobsV1 response length=${response.length} versionedHashes=${versionedHashes.length}`;
+    if (invalidLength) {
+      const error = `Invalid ${method} response length=${response.length} versionedHashes=${versionedHashes.length}`;
       this.logger.error(error);
       throw Error(error);
     }
 
-    return response.map(deserializeBlobAndProofs);
-  }
-
-  async getBlobsV2(fork: ForkName, versionedHashes: VersionedHashes): Promise<BlobAndProofV2[]> {
-    if (ForkSeq[fork] < ForkSeq.fulu) {
-      throw Error(`engine_getBlobsV2 not available for fork=${fork}`);
-    }
-
-    // retry only after a day may be
-    const GETBLOBS_RETRY_TIMEOUT = 256 * 32 * 12;
-    const timeNow = Date.now() / 1000;
-    const timeSinceLastFail = timeNow - this.lastGetBlobsErrorTime;
-    if (timeSinceLastFail < GETBLOBS_RETRY_TIMEOUT) {
-      // do not try getblobs since it might not be available
-      this.logger.debug(
-        `disabled engine_getBlobsV2 api call since last failed < GETBLOBS_RETRY_TIMEOUT=${GETBLOBS_RETRY_TIMEOUT}`,
-        timeSinceLastFail
-      );
-      throw Error(
-        `engine_getBlobsV2 call recently failed timeSinceLastFail=${timeSinceLastFail} < GETBLOBS_RETRY_TIMEOUT=${GETBLOBS_RETRY_TIMEOUT}`
-      );
-    }
-
-    const method = "engine_getBlobsV2";
-    assertReqSizeLimit(versionedHashes.length, 128);
-    const versionedHashesHex = versionedHashes.map(bytesToData);
-    const response = await this.rpc
-      .fetchWithRetries<EngineApiRpcReturnTypes[typeof method], EngineApiRpcParamTypes[typeof method]>({
-        method,
-        params: [versionedHashesHex],
-      })
-      .catch((e) => {
-        if (e instanceof ErrorJsonRpcResponse && parseJsonRpcErrorCode(e.response.error.code) === "Method not found") {
-          this.lastGetBlobsErrorTime = timeNow;
-          this.logger.debug("disabling engine_getBlobsV2 api call since engine responded with method not availeble", {
-            retryTimeout: GETBLOBS_RETRY_TIMEOUT,
-          });
-        }
-        throw e;
-      });
-
-    if (response.length > 0 && response.length !== versionedHashes.length) {
-      const error = `Invalid engine_getBlobsV2 response length=${response.length} versionedHashes=${versionedHashes.length}`;
-      this.logger.error(error);
-      throw Error(error);
-    }
-
-    return response.map(deserializeBlobAndProofsV2);
+    // engine_getBlobsV2 returns a list of cell proofs per blob, whereas engine_getBlobsV1 returns one proof per blob
+    return method === "engine_getBlobsV2"
+      ? (response as EngineApiRpcReturnTypes[typeof method]).map(deserializeBlobAndProofsV2)
+      : (response as EngineApiRpcReturnTypes[typeof method]).map(deserializeBlobAndProofs);
   }
 
   private async getClientVersion(clientVersion: ClientVersion): Promise<ClientVersion[]> {
