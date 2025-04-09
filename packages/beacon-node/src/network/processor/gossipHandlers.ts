@@ -74,6 +74,7 @@ import {sszDeserialize} from "../gossip/topic.js";
 import {INetwork} from "../interface.js";
 import {PeerAction} from "../peers/index.js";
 import {AggregatorTracker} from "./aggregatorTracker.js";
+import {ChainEvent} from "../../chain/emitter.js";
 
 /**
  * Gossip handler options as part of network options
@@ -177,6 +178,7 @@ function getSequentialHandlers(modules: ValidatorFnsModules, options: GossipHand
       logger.debug("Validated gossip block", {...logCtx, recvToValidation, validationTime});
 
       chain.emitter.emit(routes.events.EventType.blockGossip, {slot, block: blockRootHex});
+      chain.emitter.emit(ChainEvent.signedBlockGossip, signedBlock);
 
       return blockInput;
     } catch (e) {
@@ -309,6 +311,8 @@ function getSequentialHandlers(modules: ValidatorFnsModules, options: GossipHand
         recvToValidation,
         validationTime,
       });
+
+      chain.emitter.emit(ChainEvent.dataColumnGossip, dataColumnSidecar);
 
       return blockInput;
     } catch (e) {

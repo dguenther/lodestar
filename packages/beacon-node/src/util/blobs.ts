@@ -11,7 +11,15 @@ import {
   VERSIONED_HASH_VERSION_KZG,
 } from "@lodestar/params";
 import {signedBlockToSignedHeader} from "@lodestar/state-transition";
-import {BeaconBlockBody, SSZTypesFor, SignedBeaconBlock, deneb, fulu, ssz} from "@lodestar/types";
+import {
+  BeaconBlockBody,
+  SSZTypesFor,
+  SignedBeaconBlock,
+  SignedBeaconBlockHeader,
+  deneb,
+  fulu,
+  ssz,
+} from "@lodestar/types";
 import {ckzg} from "./kzg.js";
 
 type VersionHash = Uint8Array;
@@ -103,4 +111,96 @@ export function computeDataColumnSidecars(
       kzgCommitmentsInclusionProof,
     };
   });
+}
+
+/**
+ * Given a blob and cell proofs, computes the cells for each blob and combines them with the proofs.
+ * Similar to the computeMatrix function described below.
+ *
+ * SPEC FUNCTION (note: spec currently computes proofs, but we already have them)
+ * https://github.com/ethereum/consensus-specs/blob/dev/specs/fulu/das-core.md#compute_matrix
+ */
+export function getCellsAndProofs(blobs: fulu.BlobAndProofV2[]): [Uint8Array[], Uint8Array[]][] {
+  return blobs.map((blob) => {
+    const cells = ckzg.computeCells(blob.blob);
+    const proofs = blob.proofs;
+    return [cells, proofs];
+  });
+}
+
+/**
+ * Given a signed block header and the commitments, inclusion proof, cells/proofs associated with
+ * each blob in the block, assemble the sidecars which can be distributed to peers.
+ *
+ * SPEC FUNCTION
+ * https://github.com/ethereum/consensus-specs/blob/dev/specs/fulu/validator.md#get_data_column_sidecars
+ */
+export function getDataColumnSidecars(
+  signedBlockHeader: SignedBeaconBlockHeader,
+  kzgCommitments: deneb.KZGCommitment[],
+  kzgCommitmentsInclusionProof: fulu.KzgCommitmentsInclusionProof,
+  cellsAndKzgProofs: [Uint8Array[], Uint8Array[]][]
+): fulu.DataColumnSidecars {
+  if (cellsAndKzgProofs.length !== kzgCommitments.length) {
+    throw Error("Invalid cellsAndKzgProofs length for getDataColumnSidecars");
+  }
+
+  const sidecars: fulu.DataColumnSidecars = [];
+  for (let columnIndex = 0; columnIndex < NUMBER_OF_COLUMNS; columnIndex++) {
+    const columnCells = [];
+    const columnProofs = [];
+    for (const [cells, proofs] of cellsAndKzgProofs) {
+      columnCells.push(cells[columnIndex]);
+      columnProofs.push(proofs[columnIndex]);
+    }
+    sidecars.push({
+      index: columnIndex,
+      column: columnCells,
+      kzgCommitments,
+      kzgProofs: columnProofs,
+      signedBlockHeader,
+      kzgCommitmentsInclusionProof,
+    });
+  }
+  return sidecars;
+}
+
+/**
+ * Given a signed block and the cells/proofs associated with each blob in the
+ * block, assemble the sidecars which can be distributed to peers.
+ *
+ * SPEC FUNCTION
+ * https://github.com/ethereum/consensus-specs/blob/dev/specs/fulu/validator.md#get_data_column_sidecars_from_block
+ */
+export function getDataColumnSidecarsFromBlock(
+  config: ChainForkConfig,
+  signedBlock: fulu.SignedBeaconBlock,
+  cellsAndKzgProofs: [Uint8Array[], Uint8Array[]][]
+): fulu.DataColumnSidecars {
+  const blobKzgCommitments = (signedBlock as deneb.SignedBeaconBlock).message.body.blobKzgCommitments;
+  const fork = config.getForkName(signedBlock.message.slot);
+  const signedBlockHeader = signedBlockToSignedHeader(config, signedBlock);
+
+  const kzgCommitmentsInclusionProof = computeKzgCommitmentsInclusionProof(fork, signedBlock.message.body);
+
+  return getDataColumnSidecars(signedBlockHeader, blobKzgCommitments, kzgCommitmentsInclusionProof, cellsAndKzgProofs);
+}
+
+/**
+ * Given a DataColumnSidecar and the cells/proofs associated with each blob corresponding
+ * to the commitments it contains, assemble all sidecars for distribution to peers.
+ *
+ * SPEC FUNCTION
+ * https://github.com/ethereum/consensus-specs/blob/dev/specs/fulu/validator.md#get_data_column_sidecars_from_column_sidecar
+ */
+export function getDataColumnSidecarsFromColumnSidecar(
+  sidecar: fulu.DataColumnSidecar,
+  cellsAndKzgProofs: [Uint8Array[], Uint8Array[]][]
+): fulu.DataColumnSidecars {
+  return getDataColumnSidecars(
+    sidecar.signedBlockHeader,
+    sidecar.kzgCommitments,
+    sidecar.kzgCommitmentsInclusionProof,
+    cellsAndKzgProofs
+  );
 }
