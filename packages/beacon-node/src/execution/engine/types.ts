@@ -4,6 +4,7 @@ import {
   CONSOLIDATION_REQUEST_TYPE,
   DEPOSIT_REQUEST_TYPE,
   FIELD_ELEMENTS_PER_BLOB,
+  CELLS_PER_BLOB,
   ForkName,
   ForkSeq,
   WITHDRAWAL_REQUEST_TYPE,
@@ -62,6 +63,7 @@ export type EngineApiRpcParamTypes = {
   engine_getPayloadV2: [QUANTITY];
   engine_getPayloadV3: [QUANTITY];
   engine_getPayloadV4: [QUANTITY];
+  engine_getPayloadV5: [QUANTITY];
 
   /**
    * 1. Array of DATA - Array of block_hash field values of the ExecutionPayload structure
@@ -97,6 +99,7 @@ export type EngineApiRpcReturnTypes = {
   engine_newPayloadV2: PayloadStatus;
   engine_newPayloadV3: PayloadStatus;
   engine_newPayloadV4: PayloadStatus;
+  engine_newPayloadV5: PayloadStatus;
   engine_forkchoiceUpdatedV1: {
     payloadStatus: PayloadStatus;
     payloadId: QUANTITY | null;
@@ -116,6 +119,7 @@ export type EngineApiRpcReturnTypes = {
   engine_getPayloadV2: ExecutionPayloadResponse;
   engine_getPayloadV3: ExecutionPayloadResponse;
   engine_getPayloadV4: ExecutionPayloadResponse;
+  engine_getPayloadV5: ExecutionPayloadResponse;
 
   engine_getPayloadBodiesByHashV1: (ExecutionPayloadBodyRpc | null)[];
 
@@ -285,7 +289,7 @@ export function parseExecutionPayload(
   if (hasPayloadValue(response)) {
     executionPayloadValue = quantityToBigint(response.blockValue);
     data = response.executionPayload;
-    blobsBundle = response.blobsBundle ? parseBlobsBundle(response.blobsBundle) : undefined;
+    blobsBundle = response.blobsBundle ? parseBlobsBundle(fork, response.blobsBundle) : undefined;
     executionRequests = response.executionRequests
       ? deserializeExecutionRequests(response.executionRequests)
       : undefined;
@@ -377,12 +381,34 @@ export function deserializePayloadAttributes(data: PayloadAttributesRpc): Payloa
   };
 }
 
-export function parseBlobsBundle(data: BlobsBundleRpc): BlobsBundle {
+export function parseBlobsBundle(fork: ForkName, data: BlobsBundleRpc): BlobsBundle {
+  // As of Nov 17th 2022 according to Dan's tests Geth returns null if no blobs in block
+  const commitments = (data.commitments ?? []).map((kzg) => dataToBytes(kzg, 48));
+  const blobs = (data.blobs ?? []).map((blob) => dataToBytes(blob, BYTES_PER_FIELD_ELEMENT * FIELD_ELEMENTS_PER_BLOB));
+  const proofs = (data.proofs ?? []).map((kzg) => dataToBytes(kzg, 48));
+
+  // Validate that commitments and blobs arrays have the same length
+  if (commitments.length !== blobs.length) {
+    throw Error(`Invalid BlobsBundle: commitments.length ${commitments.length} != blobs.length ${blobs.length}`);
+  }
+
+  // For V2 format, validate that proofs length is blobs.length * CELLS_PER_BLOB
+  if (ForkSeq[fork] >= ForkSeq.fulu) {
+    const expectedProofsLength = blobs.length * CELLS_PER_BLOB;
+    if (proofs.length !== expectedProofsLength) {
+      throw Error(`Invalid proofs length for BlobsBundleV2 format: expected ${expectedProofsLength}, got ${proofs.length}`);
+    }
+  } else {
+    // For V1 format, validate that proofs length matches blobs length
+    if (proofs.length !== blobs.length) {
+      throw Error(`Invalid BlobsBundle: proofs.length ${proofs.length} != blobs.length ${blobs.length}`);
+    }
+  }
+
   return {
-    // As of Nov 17th 2022 according to Dan's tests Geth returns null if no blobs in block
-    commitments: (data.commitments ?? []).map((kzg) => dataToBytes(kzg, 48)),
-    blobs: (data.blobs ?? []).map((blob) => dataToBytes(blob, BYTES_PER_FIELD_ELEMENT * FIELD_ELEMENTS_PER_BLOB)),
-    proofs: (data.proofs ?? []).map((kzg) => dataToBytes(kzg, 48)),
+    commitments,
+    blobs,
+    proofs,
   };
 }
 
