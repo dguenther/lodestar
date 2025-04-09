@@ -4,7 +4,7 @@ import {StrictEventEmitter} from "strict-event-emitter-types";
 import {routes} from "@lodestar/api";
 import {CheckpointWithHex} from "@lodestar/fork-choice";
 import {CachedBeaconStateAllForks} from "@lodestar/state-transition";
-import {phase0} from "@lodestar/types";
+import {phase0, fulu, SignedBeaconBlock} from "@lodestar/types";
 
 /**
  * Important chain events that occur during normal chain operation.
@@ -34,6 +34,17 @@ export enum ChainEvent {
    * This event is guaranteed to be triggered whenever the fork choice justified checkpoint is updated. This is in response to a newly processed block.
    */
   forkChoiceFinalized = "forkChoice:finalized",
+
+  /**
+   * This event signals that the chain has processed a data column gossip.
+   */
+  dataColumnGossip = "dataColumnGossip",
+
+  /**
+   * This event signals that the chain has processed a beacon block gossip.
+   * TODO: Safe to extend the existing blockGossip route event?
+   */
+  signedBlockGossip = "signedBlockGossip",
 }
 
 export type HeadEventData = routes.events.EventData[routes.events.EventType.head];
@@ -47,6 +58,9 @@ export type IChainEvents = ApiEvents & {
 
   [ChainEvent.forkChoiceJustified]: (checkpoint: CheckpointWithHex) => void;
   [ChainEvent.forkChoiceFinalized]: (checkpoint: CheckpointWithHex) => void;
+
+  [ChainEvent.dataColumnGossip]: (sidecar: fulu.DataColumnSidecar) => void;
+  [ChainEvent.signedBlockGossip]: (block: SignedBeaconBlock) => void;
 };
 
 /**

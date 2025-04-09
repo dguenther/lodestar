@@ -1,7 +1,7 @@
 import {SLOTS_PER_EPOCH} from "@lodestar/params";
-import {Slot} from "@lodestar/types";
+import {fulu, SignedBeaconBlock, Slot} from "@lodestar/types";
 import {Logger} from "@lodestar/utils";
-import {IBeaconChain} from "../chain/index.js";
+import {ChainEvent, IBeaconChain} from "../chain/index.js";
 import {GENESIS_SLOT} from "../constants/constants.js";
 import {ExecutionEngineState} from "../execution/index.js";
 import {Metrics} from "../metrics/index.js";
@@ -15,6 +15,8 @@ import {SyncOptions} from "./options.js";
 import {RangeSync, RangeSyncEvent, RangeSyncStatus} from "./range/range.js";
 import {UnknownBlockSync} from "./unknownBlock.js";
 import {PeerSyncType, getPeerSyncType, peerSyncTypes} from "./utils/remoteSyncType.js";
+import {ColumnReconstructor} from "./reconstruction/columnReconstructor.js";
+import {GossipedInputType} from "../chain/blocks/types.js";
 
 export class BeaconSync implements IBeaconSync {
   private readonly logger: Logger;
@@ -25,6 +27,7 @@ export class BeaconSync implements IBeaconSync {
 
   private readonly rangeSync: RangeSync;
   private readonly unknownBlockSync: UnknownBlockSync;
+  private readonly columnReconstructor: ColumnReconstructor;
 
   /** For metrics only */
   private readonly peerSyncType = new Map<string, PeerSyncType>();
@@ -39,7 +42,12 @@ export class BeaconSync implements IBeaconSync {
     this.logger = logger;
     this.rangeSync = new RangeSync(modules, opts);
     this.unknownBlockSync = new UnknownBlockSync(config, network, chain, logger, metrics, opts);
+    this.columnReconstructor = new ColumnReconstructor(chain, network);
     this.slotImportTolerance = opts.slotImportTolerance ?? SLOTS_PER_EPOCH;
+
+    // Subscribe to events that trigger column reconstruction
+    this.chain.emitter.on(ChainEvent.dataColumnGossip, this.dataColumnGossip);
+    this.chain.emitter.on(ChainEvent.signedBlockGossip, this.signedBlockGossip);
 
     // Subscribe to RangeSync completing a SyncChain and recompute sync state
     if (!opts.disableRangeSync) {
@@ -79,6 +87,8 @@ export class BeaconSync implements IBeaconSync {
   }
 
   close(): void {
+    this.chain.emitter.off(ChainEvent.dataColumnGossip, this.dataColumnGossip);
+    this.chain.emitter.off(ChainEvent.signedBlockGossip, this.signedBlockGossip);
     this.network.events.off(NetworkEvent.peerConnected, this.addPeer);
     this.network.events.off(NetworkEvent.peerDisconnected, this.removePeer);
     this.chain.clock.off(ClockEvent.epoch, this.onClockEpoch);
@@ -207,6 +217,21 @@ export class BeaconSync implements IBeaconSync {
     this.rangeSync.removePeer(data.peer);
 
     this.peerSyncType.delete(data.peer.toString());
+  };
+
+  private dataColumnGossip = (dataColumnSidecar: fulu.DataColumnSidecar): void => {
+    this.columnReconstructor.reconstructColumns({
+      type: GossipedInputType.dataColumn,
+      dataColumnSidecar,
+      dataColumnBytes: null,
+    });
+  };
+
+  private signedBlockGossip = (block: SignedBeaconBlock): void => {
+    this.columnReconstructor.reconstructColumns({
+      type: GossipedInputType.block,
+      signedBlock: block,
+    });
   };
 
   /**
