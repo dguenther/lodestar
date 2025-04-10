@@ -9,7 +9,6 @@ import {
   KZG_COMMITMENT_GINDEX0,
   NUMBER_OF_COLUMNS,
   VERSIONED_HASH_VERSION_KZG,
-  CELLS_PER_BLOB,
 } from "@lodestar/params";
 import {signedBlockToSignedHeader} from "@lodestar/state-transition";
 import {BeaconBlockBody, SSZTypesFor, SignedBeaconBlock, deneb, fulu, ssz} from "@lodestar/types";
