@@ -90,14 +90,14 @@ export function computeDataColumnSidecars(
   const {blobs, kzgProofs} = contents;
   const cellsAndProofs = Array.from({length: blobs.length}, (_, rowNumber) => {
     const cells = ckzg.computeCells(blobs[rowNumber]);
-    const cellProofs = kzgProofs.slice(rowNumber * NUMBER_OF_COLUMNS, (rowNumber + 1) * NUMBER_OF_COLUMNS);
-    return {cells, cellProofs};
+    const proofs = kzgProofs.slice(rowNumber * NUMBER_OF_COLUMNS, (rowNumber + 1) * NUMBER_OF_COLUMNS);
+    return {cells, proofs};
   });
 
   return Array.from({length: NUMBER_OF_COLUMNS}, (_, columnIndex) => {
     // columnIndex'th column
     const column = Array.from({length: blobs.length}, (_, rowNumber) => cellsAndProofs[rowNumber].cells[columnIndex]);
-    const columnKzgProofs = Array.from({length: blobs.length}, (_, rowNumber) => cellsAndProofs[rowNumber].cellProofs[columnIndex]);
+    const columnKzgProofs = Array.from({length: blobs.length}, (_, rowNumber) => cellsAndProofs[rowNumber].proofs[columnIndex]);
     return {
       index: columnIndex,
       column,

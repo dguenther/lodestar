@@ -98,7 +98,6 @@ export type EngineApiRpcReturnTypes = {
   engine_newPayloadV2: PayloadStatus;
   engine_newPayloadV3: PayloadStatus;
   engine_newPayloadV4: PayloadStatus;
-  engine_newPayloadV5: PayloadStatus;
   engine_forkchoiceUpdatedV1: {
     payloadStatus: PayloadStatus;
     payloadId: QUANTITY | null;
@@ -381,8 +380,8 @@ export function deserializePayloadAttributes(data: PayloadAttributesRpc): Payloa
 }
 
 export function parseBlobsBundle(data: BlobsBundleRpc): BlobsBundle {
-  // As of Nov 17th 2022 according to Dan's tests Geth returns null if no blobs in block
   return {
+    // As of Nov 17th 2022 according to Dan's tests Geth returns null if no blobs in block
     commitments: (data.commitments ?? []).map((kzg) => dataToBytes(kzg, 48)),
     blobs: (data.blobs ?? []).map((blob) => dataToBytes(blob, BYTES_PER_FIELD_ELEMENT * FIELD_ELEMENTS_PER_BLOB)),
     proofs: (data.proofs ?? []).map((kzg) => dataToBytes(kzg, 48)),
