@@ -293,6 +293,7 @@ export class BeaconSync implements IBeaconSync {
     // If the chain gets stuck or very overloaded it could helps to resolve the situation
     // by realizing it's way behind and turning gossip off.
     this.updateSyncState();
+    this.columnReconstructor.prune();
   };
 
   private scrapeMetrics(metrics: Metrics): void {
