@@ -48,7 +48,6 @@ import {fromGraffitiBuffer} from "../../util/graffiti.js";
 import type {BeaconChain} from "../chain.js";
 import {CommonBlockBody} from "../interface.js";
 import {validateBlobsAndKzgCommitments} from "./validateBlobsAndKzgCommitments.js";
-import { validateBlobsAndCellProofs } from "./validateBlobsAndCellProofs.js";
 
 // Time to provide the EL to generate a payload from new payload id
 const PAYLOAD_GENERATION_TIME_MS = 500;
@@ -348,8 +347,6 @@ export async function produceBlockBody<T extends BlockType>(
             if (blobsBundle === undefined) {
               throw Error(`Missing blobsBundle response from getPayload at fork=${fork}`);
             }
-
-            validateBlobsAndCellProofs(executionPayload, blobsBundle);
 
             (blockBody as fulu.BeaconBlockBody).blobKzgCommitments = blobsBundle.commitments;
             const blockHash = toRootHex(executionPayload.blockHash);
