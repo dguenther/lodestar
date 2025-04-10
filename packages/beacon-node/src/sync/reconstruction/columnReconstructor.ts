@@ -14,6 +14,7 @@ import {
 import {INetwork} from "../../network/index.js";
 import {SeenGossipBlockInput} from "../../chain/seenCache/seenGossipBlockInput.js";
 import {IBeaconChain} from "../../chain/interface.js";
+import {promiseAllMaybeAsync} from "../../util/promises.js";
 
 type ColumnReconstructorBlockInput =
   | {type: GossipedInputType.block; signedBlock: SignedBeaconBlock}
@@ -118,14 +119,17 @@ export class ColumnReconstructor {
       throw new Error("Invalid gossipedInput type");
     }
 
-    // TODO: re-gossip the sidecars to subscribed subnets
+    // Publish columns if and only if subscribed to them
+    const sampledColumns = this.custodyConfig.sampledColumns.map((columnIndex) => dataColumnSidecars[columnIndex]);
 
-    for (const sidecar of dataColumnSidecars) {
+    const publishPromises = sampledColumns.map((column) => () => this.network.publishDataColumnSidecar(column));
+
+    for (const column of sampledColumns) {
       this.seenGossipBlockInput.getGossipBlockInput(
         config,
         {
           type: GossipedInputType.dataColumn,
-          dataColumnSidecar: sidecar,
+          dataColumnSidecar: column,
           // TODO: figure out what to use here
           dataColumnBytes: null,
         },
@@ -133,5 +137,7 @@ export class ColumnReconstructor {
         null
       );
     }
+
+    await promiseAllMaybeAsync(publishPromises);
   }
 }
