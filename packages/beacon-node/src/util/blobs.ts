@@ -9,6 +9,7 @@ import {
   KZG_COMMITMENT_GINDEX0,
   NUMBER_OF_COLUMNS,
   VERSIONED_HASH_VERSION_KZG,
+  CELLS_PER_BLOB,
 } from "@lodestar/params";
 import {signedBlockToSignedHeader} from "@lodestar/state-transition";
 import {BeaconBlockBody, SSZTypesFor, SignedBeaconBlock, deneb, fulu, ssz} from "@lodestar/types";
@@ -74,7 +75,7 @@ export function computeBlobSidecars(
 export function computeDataColumnSidecars(
   config: ChainForkConfig,
   signedBlock: SignedBeaconBlock,
-  contents: deneb.Contents & {kzgCommitmentsInclusionProof?: fulu.KzgCommitmentsInclusionProof}
+  contents: fulu.Contents & {kzgCommitmentsInclusionProof?: fulu.KzgCommitmentsInclusionProof}
 ): fulu.DataColumnSidecars {
   const blobKzgCommitments = (signedBlock as deneb.SignedBeaconBlock).message.body.blobKzgCommitments;
   if (blobKzgCommitments === undefined) {
@@ -83,22 +84,26 @@ export function computeDataColumnSidecars(
   if (blobKzgCommitments.length === 0) {
     return [];
   }
-  const {blobs} = contents;
   const fork = config.getForkName(signedBlock.message.slot);
   const signedBlockHeader = signedBlockToSignedHeader(config, signedBlock);
   const kzgCommitmentsInclusionProof =
     contents.kzgCommitmentsInclusionProof ?? computeKzgCommitmentsInclusionProof(fork, signedBlock.message.body);
-  const cellsAndProofs = blobs.map((blob) => ckzg.computeCellsAndKzgProofs(blob));
+  const {blobs, kzgProofs} = contents;
+  const cellsAndProofs = Array.from({length: blobs.length}, (_, rowNumber) => {
+    const cells = ckzg.computeCells(blobs[rowNumber]);
+    const cellProofs = kzgProofs.slice(rowNumber * NUMBER_OF_COLUMNS, (rowNumber + 1) * NUMBER_OF_COLUMNS);
+    return {cells, cellProofs};
+  });
 
   return Array.from({length: NUMBER_OF_COLUMNS}, (_, columnIndex) => {
     // columnIndex'th column
-    const column = Array.from({length: blobs.length}, (_, rowNumber) => cellsAndProofs[rowNumber][0][columnIndex]);
-    const kzgProofs = Array.from({length: blobs.length}, (_, rowNumber) => cellsAndProofs[rowNumber][1][columnIndex]);
+    const column = Array.from({length: blobs.length}, (_, rowNumber) => cellsAndProofs[rowNumber].cells[columnIndex]);
+    const columnKzgProofs = Array.from({length: blobs.length}, (_, rowNumber) => cellsAndProofs[rowNumber].cellProofs[columnIndex]);
     return {
       index: columnIndex,
       column,
       kzgCommitments: blobKzgCommitments,
-      kzgProofs,
+      kzgProofs: columnKzgProofs,
       signedBlockHeader,
       kzgCommitmentsInclusionProof,
     };

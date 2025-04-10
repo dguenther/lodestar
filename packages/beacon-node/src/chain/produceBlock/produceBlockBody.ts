@@ -29,6 +29,7 @@ import {
   capella,
   deneb,
   electra,
+  fulu,
   ssz,
   sszTypesFor,
 } from "@lodestar/types";
@@ -342,7 +343,20 @@ export async function produceBlockBody<T extends BlockType>(
             this.metrics?.blockPayload.emptyPayloads.inc({prepType});
           }
 
-          if (ForkSeq[fork] >= ForkSeq.deneb) {
+          if (ForkSeq[fork] >= ForkSeq.fulu) {
+            if (blobsBundle === undefined) {
+              throw Error(`Missing blobsBundle response from getPayload at fork=${fork}`);
+            }
+
+            // TODO: compute cells and verify proofs
+
+            (blockBody as fulu.BeaconBlockBody).blobKzgCommitments = blobsBundle.commitments;
+            const blockHash = toRootHex(executionPayload.blockHash);
+            const contents = {kzgProofs: blobsBundle.proofs, blobs: blobsBundle.blobs};
+            blobsResult = {type: BlobsResultType.produced, contents, blockHash};
+
+            Object.assign(logMeta, {blobs: blobsBundle.commitments.length});
+          } else if (ForkSeq[fork] >= ForkSeq.deneb) {
             if (blobsBundle === undefined) {
               throw Error(`Missing blobsBundle response from getPayload at fork=${fork}`);
             }

@@ -89,7 +89,7 @@ describe("data column sidecars", () => {
     const slot = 0;
     const blobs = [generateRandomBlob(), generateRandomBlob()];
     const kzgCommitments = blobs.map((blob) => ckzg.blobToKzgCommitment(blob));
-    const kzgProofs = blobs.map((blob, i) => ckzg.computeBlobKzgProof(blob, kzgCommitments[i]));
+    const kzgProofs = blobs.flatMap((blob) => ckzg.computeCellsAndKzgProofs(blob)[1]);
 
     const signedBeaconBlock = ssz.fulu.SignedBeaconBlock.defaultValue();
 
@@ -127,7 +127,7 @@ describe("data column sidecars", () => {
     const slot = 0;
     const blobs = [generateRandomBlob(), generateRandomBlob()];
     const kzgCommitments = blobs.map((blob) => ckzg.blobToKzgCommitment(blob));
-    const kzgProofs = blobs.map((blob, i) => ckzg.computeBlobKzgProof(blob, kzgCommitments[i]));
+    const kzgProofs = blobs.flatMap((blob) => ckzg.computeCellsAndKzgProofs(blob)[1]);
 
     const signedBeaconBlock = ssz.fulu.SignedBeaconBlock.defaultValue();
 
