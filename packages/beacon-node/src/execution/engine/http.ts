@@ -1,5 +1,5 @@
 import {Logger} from "@lodestar/logger";
-import {ForkName, ForkPostFulu, ForkPreFulu, ForkSeq, isForkPostFulu, SLOTS_PER_EPOCH} from "@lodestar/params";
+import {ForkName, ForkPostFulu, ForkPreFulu, ForkSeq, SLOTS_PER_EPOCH, isForkPostFulu} from "@lodestar/params";
 import {ExecutionPayload, ExecutionRequests, Root, RootHex, Wei} from "@lodestar/types";
 import {BlobAndProof} from "@lodestar/types/deneb";
 import {BlobAndProofV2} from "@lodestar/types/fulu";
@@ -118,7 +118,6 @@ const getPayloadOpts: ReqOpts = {routeId: "getPayload"};
 export class ExecutionEngineHttp implements IExecutionEngine {
   private logger: Logger;
   private lastGetBlobsV1ErrorTime = 0;
-  private lastGetBlobsV2ErrorTime = 0;
 
   // The default state is ONLINE, it will be updated to SYNCING once we receive the first payload
   // This assumption is better than the OFFLINE state, since we can't be sure if the EL is offline and being offline may trigger some notifications
@@ -474,23 +473,25 @@ export class ExecutionEngineHttp implements IExecutionEngine {
   async getBlobs(
     fork: ForkName,
     versionedHashes: VersionedHashes
-  ): Promise<(BlobAndProofV2[] | (BlobAndProof | null)[] | null)> {
+  ): Promise<BlobAndProofV2[] | (BlobAndProof | null)[] | null> {
     const method = isForkPostFulu(fork) ? "engine_getBlobsV2" : "engine_getBlobsV1";
 
+    // engine_getBlobsV2 is mandatory, but engine_getBlobsV1 is optional
+    const timeNow = Date.now() / 1000;
     // retry only after a day may be
     const GETBLOBS_RETRY_TIMEOUT = 256 * 32 * 12;
-    const timeNow = Date.now() / 1000;
-    const timeSinceLastFail =
-      timeNow - (isForkPostFulu(fork) ? this.lastGetBlobsV2ErrorTime : this.lastGetBlobsV1ErrorTime);
-    if (timeSinceLastFail < GETBLOBS_RETRY_TIMEOUT) {
-      // do not try getblobs since it might not be available
-      this.logger.debug(
-        `disabled ${method} api call since last failed < GETBLOBS_RETRY_TIMEOUT=${GETBLOBS_RETRY_TIMEOUT}`,
-        timeSinceLastFail
-      );
-      throw Error(
-        `${method} call recently failed timeSinceLastFail=${timeSinceLastFail} < GETBLOBS_RETRY_TIMEOUT=${GETBLOBS_RETRY_TIMEOUT}`
-      );
+    if (method === "engine_getBlobsV1") {
+      const timeSinceLastFail = timeNow - this.lastGetBlobsV1ErrorTime;
+      if (timeSinceLastFail < GETBLOBS_RETRY_TIMEOUT) {
+        // do not try getblobs since it might not be available
+        this.logger.debug(
+          `disabled ${method} api call since last failed < GETBLOBS_RETRY_TIMEOUT=${GETBLOBS_RETRY_TIMEOUT}`,
+          timeSinceLastFail
+        );
+        throw Error(
+          `${method} call recently failed timeSinceLastFail=${timeSinceLastFail} < GETBLOBS_RETRY_TIMEOUT=${GETBLOBS_RETRY_TIMEOUT}`
+        );
+      }
     }
 
     // Clients must support at least 128 versionedHashes, so we avoid sending more
@@ -503,10 +504,12 @@ export class ExecutionEngineHttp implements IExecutionEngine {
         params: [versionedHashesHex],
       })
       .catch((e) => {
-        if (e instanceof ErrorJsonRpcResponse && parseJsonRpcErrorCode(e.response.error.code) === "Method not found") {
-          if (isForkPostFulu(fork)) {
-            this.lastGetBlobsV2ErrorTime = timeNow;
-          } else {
+        if (
+          method === "engine_getBlobsV1" &&
+          e instanceof ErrorJsonRpcResponse &&
+          parseJsonRpcErrorCode(e.response.error.code) === "Method not found"
+        ) {
+          if (method === "engine_getBlobsV1") {
             this.lastGetBlobsV1ErrorTime = timeNow;
           }
           this.logger.debug(`disabling ${method} api call since engine responded with method not available`, {
@@ -532,7 +535,7 @@ export class ExecutionEngineHttp implements IExecutionEngine {
         : !response || response.length !== versionedHashes.length;
 
     if (invalidLength) {
-      const error = `Invalid ${method} response length=${response?.length ?? 'null'} versionedHashes=${versionedHashes.length}`;
+      const error = `Invalid ${method} response length=${response?.length ?? "null"} versionedHashes=${versionedHashes.length}`;
       this.logger.error(error);
       throw Error(error);
     }
