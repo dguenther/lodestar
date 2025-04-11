@@ -469,12 +469,12 @@ export class ExecutionEngineHttp implements IExecutionEngine {
     return response.map(deserializeExecutionPayloadBody);
   }
 
-  async getBlobs(fork: ForkPostFulu, versionedHashes: VersionedHashes): Promise<BlobAndProofV2[]>;
+  async getBlobs(fork: ForkPostFulu, versionedHashes: VersionedHashes): Promise<BlobAndProofV2[] | null>;
   async getBlobs(fork: ForkPreFulu, versionedHashes: VersionedHashes): Promise<(BlobAndProof | null)[]>;
   async getBlobs(
     fork: ForkName,
     versionedHashes: VersionedHashes
-  ): Promise<BlobAndProofV2[] | (BlobAndProof | null)[]> {
+  ): Promise<(BlobAndProofV2[] | (BlobAndProof | null)[] | null)> {
     const method = isForkPostFulu(fork) ? "engine_getBlobsV2" : "engine_getBlobsV1";
 
     // retry only after a day may be
@@ -528,19 +528,25 @@ export class ExecutionEngineHttp implements IExecutionEngine {
     // engine_getBlobsV2 does not return partial responses. It returns an empty array if any blob is not found
     const invalidLength =
       method === "engine_getBlobsV2"
-        ? response.length > 0 && response.length !== versionedHashes.length
-        : response.length !== versionedHashes.length;
+        ? response && response.length !== versionedHashes.length
+        : !response || response.length !== versionedHashes.length;
 
     if (invalidLength) {
-      const error = `Invalid ${method} response length=${response.length} versionedHashes=${versionedHashes.length}`;
+      const error = `Invalid ${method} response length=${response?.length ?? 'null'} versionedHashes=${versionedHashes.length}`;
       this.logger.error(error);
       throw Error(error);
     }
 
     // engine_getBlobsV2 returns a list of cell proofs per blob, whereas engine_getBlobsV1 returns one proof per blob
-    return method === "engine_getBlobsV2"
-      ? (response as EngineApiRpcReturnTypes[typeof method]).map(deserializeBlobAndProofsV2)
-      : (response as EngineApiRpcReturnTypes[typeof method]).map(deserializeBlobAndProofs);
+    switch (method) {
+      case "engine_getBlobsV1":
+        return (response as EngineApiRpcReturnTypes[typeof method]).map(deserializeBlobAndProofs);
+      case "engine_getBlobsV2": {
+        const castResponse = response as EngineApiRpcReturnTypes[typeof method];
+        if (castResponse === null) return null;
+        return castResponse.map(deserializeBlobAndProofsV2);
+      }
+    }
   }
 
   private async getClientVersion(clientVersion: ClientVersion): Promise<ClientVersion[]> {

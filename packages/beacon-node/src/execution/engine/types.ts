@@ -126,7 +126,7 @@ export type EngineApiRpcReturnTypes = {
   engine_getClientVersionV1: ClientVersionRpc[];
 
   engine_getBlobsV1: (BlobAndProofRpc | null)[];
-  engine_getBlobsV2: BlobAndProofV2Rpc[];
+  engine_getBlobsV2: BlobAndProofV2Rpc[] | null;
 };
 
 type ExecutionPayloadRpcWithValue = {
