@@ -519,15 +519,6 @@ export class ExecutionEngineHttp implements IExecutionEngine {
         throw e;
       });
 
-    // handle nethermind buggy response
-    // see: https://discord.com/channels/595666850260713488/1293605631785304088/1298956894274060301
-    if (
-      method === "engine_getBlobsV1" &&
-      (response as unknown as {blobsAndProofs: EngineApiRpcReturnTypes[typeof method]}).blobsAndProofs !== undefined
-    ) {
-      response = (response as unknown as {blobsAndProofs: EngineApiRpcReturnTypes[typeof method]}).blobsAndProofs;
-    }
-
     // engine_getBlobsV2 does not return partial responses. It returns an empty array if any blob is not found
     const invalidLength =
       method === "engine_getBlobsV2"
