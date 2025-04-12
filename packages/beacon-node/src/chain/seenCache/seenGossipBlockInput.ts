@@ -1,11 +1,19 @@
 import {toHexString} from "@chainsafe/ssz";
 import {ChainForkConfig} from "@lodestar/config";
-import {ForkName, isForkPostDeneb, NUMBER_OF_COLUMNS} from "@lodestar/params";
+import {ForkName, NUMBER_OF_COLUMNS, isForkPostDeneb} from "@lodestar/params";
 import {RootHex, SignedBeaconBlock, deneb, fulu, ssz} from "@lodestar/types";
 import {pruneSetToMax} from "@lodestar/utils";
 
+import {IExecutionEngine} from "../../execution/index.js";
 import {Metrics} from "../../metrics/index.js";
-import {CustodyConfig} from "../../util/dataColumns.js";
+import {kzgCommitmentToVersionedHash} from "../../util/blobs.js";
+import {
+  CustodyConfig,
+  getCellsAndProofs,
+  getDataColumnSidecarsFromBlock,
+  getDataColumnSidecarsFromColumnSidecar,
+} from "../../util/dataColumns.js";
+import {callInNextEventLoop} from "../../util/eventLoop.js";
 import {
   BlobsSource,
   BlockInput,
@@ -22,14 +30,6 @@ import {
   getBlockInputBlobs,
   getBlockInputDataColumns,
 } from "../blocks/types.js";
-import {callInNextEventLoop} from "../../util/eventLoop.js";
-import {IExecutionEngine} from "../../execution/index.js";
-import {
-  getCellsAndProofs,
-  getDataColumnSidecarsFromBlock,
-  getDataColumnSidecarsFromColumnSidecar,
-  kzgCommitmentToVersionedHash,
-} from "../../util/blobs.js";
 import {ChainEvent, ChainEventEmitter} from "../emitter.js";
 
 export enum BlockInputAvailabilitySource {
@@ -147,7 +147,7 @@ export class SeenGossipBlockInput {
       blockHex = toHexString(blockRoot);
       blockCache = this.blockInputCache.get(blockHex) ?? getEmptyBlockInputCacheEntry(fork, ++this.globalCacheId);
       if (blockCache.cachedData?.fork !== ForkName.fulu) {
-        throw Error(`dataColumn data at non fulu fork=${blockCache.fork}`);
+        throw Error(`blob data at non fulu fork=${blockCache.fork}`);
       }
 
       // TODO: freetheblobs check if its the same blob or a duplicate and throw/take actions
@@ -232,7 +232,7 @@ export class SeenGossipBlockInput {
       if (cachedData.fork === ForkName.fulu) {
         const {dataColumnsCache, resolveAvailability} = cachedData as CachedDataColumns;
 
-        // block is available, check if all columns have shown up
+        // block is available, check if all blobs have shown up
         const {slot} = signedBlock.message;
         const blockInfo = `blockHex=${blockHex}, slot=${slot}`;
 

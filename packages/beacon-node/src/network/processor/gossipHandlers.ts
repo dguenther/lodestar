@@ -74,7 +74,6 @@ import {sszDeserialize} from "../gossip/topic.js";
 import {INetwork} from "../interface.js";
 import {PeerAction} from "../peers/index.js";
 import {AggregatorTracker} from "./aggregatorTracker.js";
-import {ChainEvent} from "../../chain/emitter.js";
 
 /**
  * Gossip handler options as part of network options
