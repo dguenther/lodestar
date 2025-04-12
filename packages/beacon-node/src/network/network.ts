@@ -28,7 +28,7 @@ import {
   phase0,
 } from "@lodestar/types";
 import {sleep} from "@lodestar/utils";
-import {IBeaconChain} from "../chain/index.js";
+import {ChainEvent, IBeaconChain} from "../chain/index.js";
 import {IBeaconDb} from "../db/interface.js";
 import {Metrics, RegistryMetricCreator} from "../metrics/index.js";
 import {IClock} from "../util/clock.js";
@@ -55,6 +55,7 @@ import {
 import {collectSequentialBlocksInRange} from "./reqresp/utils/collectSequentialBlocksInRange.js";
 import {CommitteeSubscription, NodeId} from "./subnets/index.js";
 import {isPublishToZeroPeersError} from "./util.js";
+import {promiseAllMaybeAsync} from "../util/promises.js";
 
 type NetworkModules = {
   opts: NetworkOptions;
@@ -139,6 +140,7 @@ export class Network implements INetwork {
     this.chain.emitter.on(routes.events.EventType.lightClientOptimisticUpdate, ({data}) =>
       this.onLightClientOptimisticUpdate(data)
     );
+    this.chain.emitter.on(ChainEvent.publishDataColumns, this.onPublishDataColumns);
   }
 
   static async init({
@@ -232,6 +234,7 @@ export class Network implements INetwork {
     this.chain.emitter.off(routes.events.EventType.head, this.onHead);
     this.chain.emitter.off(routes.events.EventType.lightClientFinalityUpdate, this.onLightClientFinalityUpdate);
     this.chain.emitter.off(routes.events.EventType.lightClientOptimisticUpdate, this.onLightClientOptimisticUpdate);
+    this.chain.emitter.off(ChainEvent.publishDataColumns, this.onPublishDataColumns);
     await this.core.close();
     this.logger.debug("network core closed");
   }
@@ -706,5 +709,9 @@ export class Network implements INetwork {
 
   private onPeerDisconnected = (data: NetworkEventData[NetworkEvent.peerDisconnected]): void => {
     this.connectedPeers.delete(data.peer);
+  };
+
+  private onPublishDataColumns = (sidecars: fulu.DataColumnSidecar[]): Promise<number[]> => {
+    return promiseAllMaybeAsync(sidecars.map((sidecar) => () => this.publishDataColumnSidecar(sidecar)));
   };
 }

@@ -178,7 +178,6 @@ function getSequentialHandlers(modules: ValidatorFnsModules, options: GossipHand
       logger.debug("Validated gossip block", {...logCtx, recvToValidation, validationTime});
 
       chain.emitter.emit(routes.events.EventType.blockGossip, {slot, block: blockRootHex});
-      chain.emitter.emit(ChainEvent.signedBlockGossip, signedBlock);
 
       return blockInput;
     } catch (e) {
@@ -311,8 +310,6 @@ function getSequentialHandlers(modules: ValidatorFnsModules, options: GossipHand
         recvToValidation,
         validationTime,
       });
-
-      chain.emitter.emit(ChainEvent.dataColumnGossip, dataColumnSidecar);
 
       return blockInput;
     } catch (e) {
