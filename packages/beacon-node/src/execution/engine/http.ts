@@ -418,13 +418,15 @@ export class ExecutionEngineHttp implements IExecutionEngine {
     shouldOverrideBuilder?: boolean;
   }> {
     const method =
-      ForkSeq[fork] >= ForkSeq.electra
-        ? "engine_getPayloadV4"
-        : ForkSeq[fork] >= ForkSeq.deneb
-          ? "engine_getPayloadV3"
-          : ForkSeq[fork] >= ForkSeq.capella
-            ? "engine_getPayloadV2"
-            : "engine_getPayloadV1";
+      ForkSeq[fork] >= ForkSeq.fulu
+        ? "engine_getPayloadV5"
+        : ForkSeq[fork] >= ForkSeq.electra
+          ? "engine_getPayloadV4"
+          : ForkSeq[fork] >= ForkSeq.deneb
+            ? "engine_getPayloadV3"
+            : ForkSeq[fork] >= ForkSeq.capella
+              ? "engine_getPayloadV2"
+              : "engine_getPayloadV1";
     const payloadResponse = await this.rpc.fetchWithRetries<
       EngineApiRpcReturnTypes[typeof method],
       EngineApiRpcParamTypes[typeof method]
