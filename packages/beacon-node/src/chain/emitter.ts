@@ -4,7 +4,7 @@ import {StrictEventEmitter} from "strict-event-emitter-types";
 import {routes} from "@lodestar/api";
 import {CheckpointWithHex} from "@lodestar/fork-choice";
 import {CachedBeaconStateAllForks} from "@lodestar/state-transition";
-import {phase0, fulu, SignedBeaconBlock} from "@lodestar/types";
+import {phase0, fulu} from "@lodestar/types";
 
 /**
  * Important chain events that occur during normal chain operation.
@@ -36,15 +36,10 @@ export enum ChainEvent {
   forkChoiceFinalized = "forkChoice:finalized",
 
   /**
-   * This event signals that the chain has processed a data column gossip.
+   * This event signals that data columns have been fetched from the execution engine
+   * and are ready to be published.
    */
-  dataColumnGossip = "dataColumnGossip",
-
-  /**
-   * This event signals that the chain has processed a beacon block gossip.
-   * TODO: Safe to extend the existing blockGossip route event?
-   */
-  signedBlockGossip = "signedBlockGossip",
+  publishDataColumns = "publishDataColumns",
 }
 
 export type HeadEventData = routes.events.EventData[routes.events.EventType.head];
@@ -59,8 +54,7 @@ export type IChainEvents = ApiEvents & {
   [ChainEvent.forkChoiceJustified]: (checkpoint: CheckpointWithHex) => void;
   [ChainEvent.forkChoiceFinalized]: (checkpoint: CheckpointWithHex) => void;
 
-  [ChainEvent.dataColumnGossip]: (sidecar: fulu.DataColumnSidecar) => void;
-  [ChainEvent.signedBlockGossip]: (block: SignedBeaconBlock) => void;
+  [ChainEvent.publishDataColumns]: (sidecars: fulu.DataColumnSidecar[]) => void;
 };
 
 /**
