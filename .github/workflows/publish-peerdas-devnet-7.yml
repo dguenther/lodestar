@@ -1,0 +1,63 @@
+name: Publish peerdas-devnet-7 release
+
+# only one per github sha can be run
+concurrency:
+  group: cd-publish-peerdas-devnet-7
+
+on:
+  push:
+    branches:
+      - peerdas-devnet-7
+
+jobs:
+  dockerx64:
+    name: Publish to Docker Hub (x64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # https://github.com/docker/setup-buildx-action
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push lodestar
+        run: >
+          docker buildx build . --push
+          --tag ghcr.io/dguenther/lodestar:peerdas-devnet-7-x64
+          --platform linux/amd64
+          --build-arg COMMIT=$(git rev-parse HEAD)
+
+      - run: docker run ghcr.io/dguenther/lodestar:peerdas-devnet-7-x64 --help
+      # Display history to know byte size of each layer
+      # Image is available only because of the previous `docker run` command
+      - run: docker image history ghcr.io/dguenther/lodestar:peerdas-devnet-7-x64
+
+  dockerarm64:
+    name: Publish to Docker Hub (arm64)
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      # https://github.com/docker/setup-buildx-action
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push lodestar
+        run: >
+          docker buildx build . --push
+          --tag ghcr.io/dguenther/lodestar:peerdas-devnet-7-arm64
+          --platform linux/arm64
+          --build-arg COMMIT=$(git rev-parse HEAD)
+
+      - run: docker run ghcr.io/dguenther/lodestar:peerdas-devnet-7-arm64 --help
+      # Display history to know byte size of each layer
+      # Image is available only because of the previous `docker run` command
+      - run: docker image history ghcr.io/dguenther/lodestar:peerdas-devnet-7-arm64
