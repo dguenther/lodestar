@@ -415,7 +415,7 @@ export class SeenGossipBlockInput {
       return;
     }
 
-    // TODO: Return again if we already have all data columns
+    // Return if we received all data columns while waiting for getBlobs
     if (blockCache.cachedData && this.hasSampledDataColumns(blockCache.cachedData.dataColumnsCache)) {
       return;
     }
