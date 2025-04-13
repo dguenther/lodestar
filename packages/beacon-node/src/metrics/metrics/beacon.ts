@@ -335,6 +335,13 @@ export function createBeaconMetrics(register: RegistryMetricCreator) {
       }),
     },
 
+    peerDas: {
+      dataColumnSidecarProcessingRequests: register.counter({
+        name: "beacon_data_column_sidecar_processing_requests_total",
+        help: "Number of data column sidecars submitted for processing",
+      }),
+    },
+
     // Non-spec'ed
     clockSlot: register.gauge({
       name: "beacon_clock_slot",

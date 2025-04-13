@@ -270,6 +270,8 @@ function getSequentialHandlers(modules: ValidatorFnsModules, options: GossipHand
     peerIdStr: string,
     seenTimestampSec: number
   ): Promise<BlockInput | NullBlockInput> {
+    metrics?.peerDas.dataColumnSidecarProcessingRequests.inc();
+
     const dataColumnBlockHeader = dataColumnSidecar.signedBlockHeader.message;
     const slot = dataColumnBlockHeader.slot;
     const blockRoot = ssz.phase0.BeaconBlockHeader.hashTreeRoot(dataColumnBlockHeader);
