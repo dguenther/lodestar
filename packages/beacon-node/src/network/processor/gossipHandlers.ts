@@ -270,7 +270,12 @@ function getSequentialHandlers(modules: ValidatorFnsModules, options: GossipHand
     peerIdStr: string,
     seenTimestampSec: number
   ): Promise<BlockInput | NullBlockInput> {
-    metrics?.peerDas.dataColumnSidecarProcessingRequests.inc();
+    if (!metrics) {
+      logger.warn("Missing metrics");
+    } else {
+      metrics.peerDas.dataColumnSidecarProcessingRequests.inc();
+      logger.info("incd beacon_data_column_sidecar_processing_requests_total");
+    }
 
     const dataColumnBlockHeader = dataColumnSidecar.signedBlockHeader.message;
     const slot = dataColumnBlockHeader.slot;
