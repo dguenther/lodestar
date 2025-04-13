@@ -11,6 +11,7 @@ import {
   isForkPostBellatrix,
   isForkPostDeneb,
   isForkPostElectra,
+  isForkPostFulu,
 } from "@lodestar/params";
 import {Epoch, SSZTypesFor, Slot, Version, sszTypesFor} from "@lodestar/types";
 import {ChainConfig} from "../chainConfig/index.js";
@@ -139,7 +140,13 @@ export function createForkConfig(config: ChainConfig): ForkConfig {
       return sszTypesFor(forkName);
     },
     getMaxBlobsPerBlock(fork: ForkName): number {
-      return isForkPostElectra(fork) ? config.MAX_BLOBS_PER_BLOCK_ELECTRA : config.MAX_BLOBS_PER_BLOCK;
+      if (isForkPostFulu(fork)) {
+        return config.MAX_BLOBS_PER_BLOCK_FULU;
+      }
+      if (isForkPostElectra(fork)) {
+        return config.MAX_BLOBS_PER_BLOCK_ELECTRA;
+      }
+      return config.MAX_BLOBS_PER_BLOCK;
     },
     getMaxRequestBlobSidecars(fork: ForkName): number {
       return isForkPostElectra(fork) ? config.MAX_REQUEST_BLOB_SIDECARS_ELECTRA : config.MAX_REQUEST_BLOB_SIDECARS;
