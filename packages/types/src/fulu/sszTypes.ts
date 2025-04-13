@@ -13,6 +13,7 @@ import {ssz as denebSsz} from "../deneb/index.js";
 import {ssz as electraSsz} from "../electra/index.js";
 import {ssz as phase0Ssz} from "../phase0/index.js";
 import {ssz as primitiveSsz} from "../primitive/index.js";
+import {Blobs, KZGProof} from "../deneb/sszTypes.js";
 
 const {BLSSignature, Root, ColumnIndex, RowIndex, Bytes32, Slot, UintNum64} = primitiveSsz;
 
@@ -31,13 +32,14 @@ export const Cell = new ByteVectorType(BYTES_PER_FIELD_ELEMENT * FIELD_ELEMENTS_
 export const DataColumn = new ListCompositeType(Cell, MAX_BLOB_COMMITMENTS_PER_BLOCK);
 export const ExtendedMatrix = new ListCompositeType(Cell, MAX_BLOB_COMMITMENTS_PER_BLOCK * NUMBER_OF_COLUMNS);
 export const KzgCommitmentsInclusionProof = new VectorCompositeType(Bytes32, KZG_COMMITMENTS_INCLUSION_PROOF_DEPTH);
+export const KZGProofs = new ListCompositeType(KZGProof, MAX_BLOB_COMMITMENTS_PER_BLOCK * NUMBER_OF_COLUMNS);
 
 export const DataColumnSidecar = new ContainerType(
   {
     index: ColumnIndex,
     column: DataColumn,
     kzgCommitments: denebSsz.BlobKzgCommitments,
-    kzgProofs: denebSsz.KZGProofs,
+    kzgProofs: KZGProofs,
     signedBlockHeader: phase0Ssz.SignedBeaconBlockHeader,
     kzgCommitmentsInclusionProof: KzgCommitmentsInclusionProof,
   },
@@ -226,14 +228,18 @@ export const SSEPayloadAttributes = new ContainerType(
 
 export const BlockContents = new ContainerType(
   {
-    ...electraSsz.BlockContents.fields,
+    block: BeaconBlock,
+    kzgProofs: KZGProofs,
+    blobs: Blobs,
   },
   {typeName: "BlockContents", jsonCase: "eth2"}
 );
 
 export const SignedBlockContents = new ContainerType(
   {
-    ...electraSsz.SignedBlockContents.fields,
+    signedBlock: SignedBeaconBlock,
+    kzgProofs: KZGProofs,
+    blobs: Blobs,
   },
   {typeName: "SignedBlockContents", jsonCase: "eth2"}
 );
