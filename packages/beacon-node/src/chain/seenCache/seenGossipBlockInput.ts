@@ -1,6 +1,6 @@
 import {toHexString} from "@chainsafe/ssz";
 import {ChainForkConfig} from "@lodestar/config";
-import {ForkName, NUMBER_OF_COLUMNS, isForkPostDeneb} from "@lodestar/params";
+import {ForkName, isForkPostDeneb} from "@lodestar/params";
 import {RootHex, SignedBeaconBlock, deneb, fulu, ssz} from "@lodestar/types";
 import {pruneSetToMax} from "@lodestar/utils";
 
@@ -31,6 +31,7 @@ import {
   getBlockInputDataColumns,
 } from "../blocks/types.js";
 import {ChainEvent, ChainEventEmitter} from "../emitter.js";
+import {DataColumnSidecars} from "../../util/types.js";
 
 export enum BlockInputAvailabilitySource {
   GOSSIP = "gossip",
@@ -236,9 +237,9 @@ export class SeenGossipBlockInput {
         const {slot} = signedBlock.message;
         const blockInfo = `blockHex=${blockHex}, slot=${slot}`;
 
-        if (NUMBER_OF_COLUMNS < dataColumnsCache.size) {
+        if (config.NUMBER_OF_COLUMNS < dataColumnsCache.size) {
           throw Error(
-            `Received more dataColumns=${dataColumnsCache.size} than columns=${NUMBER_OF_COLUMNS} for ${blockInfo}`
+            `Received more dataColumns=${dataColumnsCache.size} than columns=${config.NUMBER_OF_COLUMNS} for ${blockInfo}`
           );
         }
 
@@ -410,7 +411,7 @@ export class SeenGossipBlockInput {
     const blobs = await this.executionEngine.getBlobs(blockCache.fork, versionedHashes);
 
     // Execution engine was unable to find one or more blobs
-    // TODO: as of peerdas-devnet-6, reth currently sends an empty array if it doesn't have 1+ blobs, but spec says to return null.
+    // TODO: as of peerdas-devnet-6, reth and nethermind currently send an empty array if it doesn't have 1+ blobs, but spec says to return null.
     if (blobs === null || blobs.length === 0) {
       return;
     }
@@ -420,7 +421,7 @@ export class SeenGossipBlockInput {
       return;
     }
 
-    let dataColumnSidecars: fulu.DataColumnSidecars;
+    let dataColumnSidecars: DataColumnSidecars;
     const cellsAndProofs = getCellsAndProofs(blobs);
     if (blockCache.block) {
       dataColumnSidecars = getDataColumnSidecarsFromBlock(
@@ -433,7 +434,7 @@ export class SeenGossipBlockInput {
       if (!firstSidecar) {
         return;
       }
-      dataColumnSidecars = getDataColumnSidecarsFromColumnSidecar(firstSidecar.dataColumn, cellsAndProofs);
+      dataColumnSidecars = getDataColumnSidecarsFromColumnSidecar(config, firstSidecar.dataColumn, cellsAndProofs);
     } else {
       throw new Error("blockInputCache missing both block and cachedData");
     }

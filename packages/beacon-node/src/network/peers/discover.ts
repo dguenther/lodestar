@@ -501,7 +501,7 @@ export class PeerDiscovery {
       // TODO-das: remove
       const nodeId = computeNodeId(peer.peerId);
       const peerCustodyGroupCount = peer.peerCustodyGroups.length;
-      const peerCustodyColumns = getDataColumns(nodeId, peerCustodyGroupCount);
+      const peerCustodyColumns = getDataColumns(this.config, nodeId, peerCustodyGroupCount);
 
       const sampleSubnets = this.networkConfig.custodyConfig.sampledSubnets;
       const matchingSubnetsNum = sampleSubnets.reduce(

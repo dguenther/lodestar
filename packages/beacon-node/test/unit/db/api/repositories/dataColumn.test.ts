@@ -1,15 +1,13 @@
-import {ByteVectorType} from "@chainsafe/ssz";
 import {createChainForkConfig} from "@lodestar/config";
 import {LevelDbController} from "@lodestar/db";
-import {NUMBER_OF_COLUMNS} from "@lodestar/params";
-import {fulu, ssz} from "@lodestar/types";
+import {ssz} from "@lodestar/types";
 import {rimraf} from "rimraf";
 import {afterEach, beforeAll, beforeEach, describe, expect, it} from "vitest";
 
 import {
   COLUMN_SIZE_IN_WRAPPER_INDEX,
   CUSTODY_COLUMNS_IN_IN_WRAPPER_INDEX,
-  DATA_COLUMN_SIDECARS_IN_WRAPPER_INDEX,
+  dataColumnSidecarsInWrapperIndex,
   DataColumnSidecarsRepository,
   NUM_COLUMNS_IN_WRAPPER_INDEX,
   dataColumnSidecarsWrapperSsz,
@@ -58,7 +56,7 @@ describe("block archive repository", () => {
     singedBlock.message.body.blobKzgCommitments.push(commitment);
     const allDataColumnSidecars = computeDataColumnSidecars(config, singedBlock, {
       blobs: [blob, blob, blob],
-      kzgProofs: Array.from({length: 3 * NUMBER_OF_COLUMNS}, () => kzgProof),
+      kzgProofs: Array.from({length: 3 * config.NUMBER_OF_COLUMNS}, () => kzgProof),
     });
     for (let j = 0; j < allDataColumnSidecars.length; j++) {
       allDataColumnSidecars[j].index = j;
@@ -72,7 +70,7 @@ describe("block archive repository", () => {
 
     const dataColumnSidecars = allDataColumnSidecars.slice(0, 7);
     const dataColumnsLen = dataColumnSidecars.length;
-    const dataColumnsIndex = Array.from({length: NUMBER_OF_COLUMNS}, (_v, _i) => 0);
+    const dataColumnsIndex = Array.from({length: config.NUMBER_OF_COLUMNS}, (_v, _i) => 0);
     for (let i = 0; i < dataColumnsLen; i++) {
       dataColumnsIndex[i] = i + 1;
     }
@@ -91,8 +89,8 @@ describe("block archive repository", () => {
     const retrievedBinary = await dataColumnRepo.getBinary(blockRoot);
     if (!retrievedBinary) throw Error("get by root returned null");
 
-    const retrieved = dataColumnSidecarsWrapperSsz.deserialize(retrievedBinary);
-    expect(dataColumnSidecarsWrapperSsz.equals(retrieved, writeData)).toBe(true);
+    const retrieved = dataColumnSidecarsWrapperSsz(config).deserialize(retrievedBinary);
+    expect(dataColumnSidecarsWrapperSsz(config).equals(retrieved, writeData)).toBe(true);
 
     const retrivedColumnsLen = ssz.Uint8.deserialize(
       retrievedBinary.slice(NUM_COLUMNS_IN_WRAPPER_INDEX, COLUMN_SIZE_IN_WRAPPER_INDEX)
@@ -107,7 +105,7 @@ describe("block archive repository", () => {
     const retrievedColumnsSize = ssz.UintNum64.deserialize(retrievedColumnsSizeBytes);
     expect(retrievedColumnsSize === columnsSize).toBe(true);
     const dataColumnSidecarsBytes = retrievedBinary.slice(
-      DATA_COLUMN_SIDECARS_IN_WRAPPER_INDEX + 4 * retrivedColumnsLen
+      dataColumnSidecarsInWrapperIndex(config) + 4 * retrivedColumnsLen
     );
     // console.log({dataColumnSidecarsBytes: dataColumnSidecarsBytes.length, computeLen: dataColumnSidecarsBytes.length/columnsSize, dataColumnsLen, dataColumnSidecars: dataColumnSidecars.length, retrievedColumnsSize, columnsSize, allDataColumnSidecars: allDataColumnSidecars.length, lastIndex, DATA_COLUMN_SIDECARS_IN_WRAPPER_INDEX, retrivedColumnsLen})
     expect(dataColumnSidecarsBytes.length === columnsSize * dataColumnsLen).toBe(true);

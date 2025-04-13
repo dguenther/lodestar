@@ -2,7 +2,6 @@ import {
   DATA_COLUMN_SIDECAR_SUBNET_COUNT,
   KZG_COMMITMENTS_INCLUSION_PROOF_DEPTH,
   KZG_COMMITMENTS_SUBTREE_INDEX,
-  NUMBER_OF_COLUMNS,
 } from "@lodestar/params";
 import {Root, Slot, deneb, fulu, ssz} from "@lodestar/types";
 import {toHex, verifyMerkleBranch} from "@lodestar/utils";
@@ -12,6 +11,8 @@ import {ckzg} from "../../util/kzg.js";
 import {DataColumnSidecarErrorCode, DataColumnSidecarGossipError} from "../errors/dataColumnSidecarError.js";
 import {GossipAction} from "../errors/gossipValidation.js";
 import {IBeaconChain} from "../interface.js";
+import {DataColumnSidecars} from "../../util/types.js";
+import {ChainForkConfig} from "@lodestar/config";
 
 export async function validateGossipDataColumnSidecar(
   chain: IBeaconChain,
@@ -21,7 +22,7 @@ export async function validateGossipDataColumnSidecar(
   const dataColumnSlot = dataColumnSideCar.signedBlockHeader.message.slot;
 
   if (
-    dataColumnSideCar.index > NUMBER_OF_COLUMNS ||
+    dataColumnSideCar.index > chain.config.NUMBER_OF_COLUMNS ||
     dataColumnSideCar.index % DATA_COLUMN_SIDECAR_SUBNET_COUNT !== gossipIndex
   ) {
     throw new DataColumnSidecarGossipError(GossipAction.REJECT, {
@@ -53,10 +54,11 @@ export async function validateGossipDataColumnSidecar(
 }
 
 export function validateDataColumnsSidecars(
+  config: ChainForkConfig,
   blockSlot: Slot,
   blockRoot: Root,
   blockKzgCommitments: deneb.BlobKzgCommitments,
-  dataColumnSidecars: fulu.DataColumnSidecars,
+  dataColumnSidecars: DataColumnSidecars,
   opts: {skipProofsCheck: boolean} = {skipProofsCheck: false}
 ): void {
   const commitmentBytes: Uint8Array[] = [];
@@ -84,7 +86,7 @@ export function validateDataColumnsSidecars(
       );
     }
 
-    if (columnIndex >= NUMBER_OF_COLUMNS) {
+    if (columnIndex >= config.NUMBER_OF_COLUMNS) {
       throw new Error(
         `Invalid data sidecar columnIndex=${columnIndex} in slot=${blockSlot} blockRoot=${toHex(blockRoot)} sidecarsIndex=${sidecarsIndex}`
       );

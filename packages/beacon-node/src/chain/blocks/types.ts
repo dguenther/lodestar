@@ -3,6 +3,7 @@ import type {DataAvailabilityStatus, MaybeValidExecutionStatus} from "@lodestar/
 import {type ForkPostDeneb, ForkSeq, ForkPreFulu, ForkPostFulu} from "@lodestar/params";
 import {type CachedBeaconStateAllForks, computeEpochAtSlot} from "@lodestar/state-transition";
 import type {ColumnIndex, RootHex, SignedBeaconBlock, Slot, deneb, fulu} from "@lodestar/types";
+import {DataColumnSidecars} from "../../util/types.js";
 
 export enum BlockInputType {
   // preData is preDeneb
@@ -82,7 +83,7 @@ type DataColumnData = {
 export type DataColumnsCacheMap = Map<number, DataColumnData>;
 export type BlockInputDataColumns = ForkDataColumnsInfo & {
   // marker of that columns are to be custodied
-  dataColumns: fulu.DataColumnSidecars;
+  dataColumns: DataColumnSidecars;
   dataColumnsBytes: (Uint8Array | null)[];
   dataColumnsSource: DataColumnsSource;
 };

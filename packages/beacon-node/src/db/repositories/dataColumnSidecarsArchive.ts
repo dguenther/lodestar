@@ -13,7 +13,7 @@ import {DataColumnSidecarsWrapper, dataColumnSidecarsWrapperSsz} from "./dataCol
 export class DataColumnSidecarsArchiveRepository extends Repository<Slot, DataColumnSidecarsWrapper> {
   constructor(config: ChainForkConfig, db: Db) {
     const bucket = Bucket.allForks_dataColumnSidecarsArchive;
-    super(config, db, bucket, dataColumnSidecarsWrapperSsz, getBucketNameByValue(bucket));
+    super(config, db, bucket, dataColumnSidecarsWrapperSsz(config), getBucketNameByValue(bucket));
   }
 
   // Handle key as slot

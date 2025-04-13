@@ -1,18 +1,19 @@
-import {GENESIS_SLOT, MAX_REQUEST_BLOCKS_DENEB, NUMBER_OF_COLUMNS} from "@lodestar/params";
+import {GENESIS_SLOT, MAX_REQUEST_BLOCKS_DENEB} from "@lodestar/params";
 import {RespStatus, ResponseError, ResponseOutgoing} from "@lodestar/reqresp";
-import {ColumnIndex, Slot, fulu, ssz} from "@lodestar/types";
+import {ColumnIndex, Slot, ssz} from "@lodestar/types";
 import {fromHex} from "@lodestar/utils";
 import {IBeaconChain} from "../../../chain/index.js";
 import {IBeaconDb} from "../../../db/index.js";
 import {
   COLUMN_SIZE_IN_WRAPPER_INDEX,
   CUSTODY_COLUMNS_IN_IN_WRAPPER_INDEX,
-  DATA_COLUMN_SIDECARS_IN_WRAPPER_INDEX,
+  dataColumnSidecarsInWrapperIndex,
   NUM_COLUMNS_IN_WRAPPER_INDEX,
 } from "../../../db/repositories/dataColumnSidecars.js";
+import {DataColumnSidecarsByRangeRequest} from "../../../util/types.js";
 
 export async function* onDataColumnSidecarsByRange(
-  request: fulu.DataColumnSidecarsByRangeRequest,
+  request: DataColumnSidecarsByRangeRequest,
   chain: IBeaconChain,
   db: IBeaconDb
 ): AsyncIterable<ResponseOutgoing> {
@@ -97,10 +98,10 @@ export function* iterateDataColumnBytesFromWrapper(
   const columnsSize = ssz.UintNum64.deserialize(retrievedColumnsSizeBytes);
   const dataColumnsIndex = dataColumnSidecarsBytesWrapped.slice(
     CUSTODY_COLUMNS_IN_IN_WRAPPER_INDEX,
-    CUSTODY_COLUMNS_IN_IN_WRAPPER_INDEX + NUMBER_OF_COLUMNS
+    CUSTODY_COLUMNS_IN_IN_WRAPPER_INDEX + chain.config.NUMBER_OF_COLUMNS
   );
   const allDataColumnSidecarsBytes = dataColumnSidecarsBytesWrapped.slice(
-    DATA_COLUMN_SIDECARS_IN_WRAPPER_INDEX + 4 * retrivedColumnsLen
+    dataColumnSidecarsInWrapperIndex(chain.config) + 4 * retrivedColumnsLen
   );
 
   const columnsLen = allDataColumnSidecarsBytes.length / columnsSize;
@@ -145,8 +146,8 @@ export function* iterateDataColumnBytesFromWrapper(
 }
 
 export function validateDataColumnSidecarsByRangeRequest(
-  request: fulu.DataColumnSidecarsByRangeRequest
-): fulu.DataColumnSidecarsByRangeRequest {
+  request: DataColumnSidecarsByRangeRequest
+): DataColumnSidecarsByRangeRequest {
   const {startSlot, columns} = request;
   let {count} = request;
 

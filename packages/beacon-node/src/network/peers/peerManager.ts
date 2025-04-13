@@ -420,7 +420,7 @@ export class PeerManager {
       const custodyGroupCount = peerData?.metadata?.cgc;
 
       const peerCustodyGroupCount = custodyGroupCount ?? this.config.CUSTODY_REQUIREMENT;
-      const dataColumns = getDataColumns(nodeId, peerCustodyGroupCount);
+      const dataColumns = getDataColumns(this.config, nodeId, peerCustodyGroupCount);
       // on metadata, we should have custodyGroupss
       const peerCustodyGroups = peerData?.metadata?.custodyGroups ?? getCustodyGroups(nodeId, peerCustodyGroupCount);
 

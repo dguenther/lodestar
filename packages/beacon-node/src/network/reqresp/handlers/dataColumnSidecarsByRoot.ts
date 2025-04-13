@@ -1,18 +1,18 @@
-import {NUMBER_OF_COLUMNS} from "@lodestar/params";
 import {RespStatus, ResponseError, ResponseOutgoing} from "@lodestar/reqresp";
-import {RootHex, fulu, ssz} from "@lodestar/types";
+import {RootHex, ssz} from "@lodestar/types";
 import {fromHex, toHex} from "@lodestar/utils";
 import {IBeaconChain} from "../../../chain/index.js";
 import {IBeaconDb} from "../../../db/index.js";
 import {
   COLUMN_SIZE_IN_WRAPPER_INDEX,
   CUSTODY_COLUMNS_IN_IN_WRAPPER_INDEX,
-  DATA_COLUMN_SIDECARS_IN_WRAPPER_INDEX,
+  dataColumnSidecarsInWrapperIndex,
   NUM_COLUMNS_IN_WRAPPER_INDEX,
 } from "../../../db/repositories/dataColumnSidecars.js";
+import {DataColumnSidecarsByRootRequest} from "../../../util/types.js";
 
 export async function* onDataColumnSidecarsByRoot(
-  requestBody: fulu.DataColumnSidecarsByRootRequest,
+  requestBody: DataColumnSidecarsByRootRequest,
   chain: IBeaconChain,
   db: IBeaconDb
 ): AsyncIterable<ResponseOutgoing> {
@@ -57,12 +57,12 @@ export async function* onDataColumnSidecarsByRoot(
       );
       const columnsSize = ssz.UintNum64.deserialize(retrievedColumnsSizeBytes);
       const dataColumnSidecarsBytes = dataColumnSidecarsBytesWrapped.slice(
-        DATA_COLUMN_SIDECARS_IN_WRAPPER_INDEX + 4 * retrivedColumnsLen
+        dataColumnSidecarsInWrapperIndex(chain.config) + 4 * retrivedColumnsLen
       );
 
       const dataColumnsIndex = dataColumnSidecarsBytesWrapped.slice(
         CUSTODY_COLUMNS_IN_IN_WRAPPER_INDEX,
-        CUSTODY_COLUMNS_IN_IN_WRAPPER_INDEX + NUMBER_OF_COLUMNS
+        CUSTODY_COLUMNS_IN_IN_WRAPPER_INDEX + chain.config.NUMBER_OF_COLUMNS
       );
 
       // const storedColumns = Array.from({length: NUMBER_OF_COLUMNS}, (_v, i) => i).filter(

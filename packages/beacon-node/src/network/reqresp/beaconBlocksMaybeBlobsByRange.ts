@@ -1,6 +1,6 @@
 import {toHexString} from "@chainsafe/ssz";
 import {ChainForkConfig} from "@lodestar/config";
-import {ForkName, ForkSeq, NUMBER_OF_COLUMNS} from "@lodestar/params";
+import {ForkName, ForkSeq} from "@lodestar/params";
 import {computeEpochAtSlot} from "@lodestar/state-transition";
 import {ColumnIndex, Epoch, SignedBeaconBlock, Slot, deneb, fulu, phase0, ssz} from "@lodestar/types";
 import {Logger} from "@lodestar/utils";
@@ -21,6 +21,7 @@ import {getEmptyBlockInputCacheEntry} from "../../chain/seenCache/seenGossipBloc
 import {PeerIdStr} from "../../util/peerId.js";
 import {INetwork, WithOptionalBytes} from "../interface.js";
 import {computeNodeId} from "../subnets/index.js";
+import {DataColumnSidecarsByRangeRequestType} from "../../util/types.js";
 
 export type PartialDownload = null | {blocks: BlockInput[]; pendingDataColumns: number[]};
 export async function beaconBlocksMaybeBlobsByRange(
@@ -112,7 +113,7 @@ export async function beaconBlocksMaybeBlobsByRange(
     ]);
     logger?.debug("ByRange requests", {
       beaconBlocksRequest: JSON.stringify(ssz.phase0.BeaconBlocksByRangeRequest.toJson(request)),
-      dataColumnRequest: JSON.stringify(ssz.fulu.DataColumnSidecarsByRangeRequest.toJson(dataColumnRequest)),
+      dataColumnRequest: JSON.stringify(DataColumnSidecarsByRangeRequestType(config).toJson(dataColumnRequest)),
       [`allBlocks(${allBlocks.length})`]: allBlocks.map((blk) => blk.data.message.slot).join(" "),
       [`allDataColumnSidecars(${allDataColumnSidecars.length})`]: allDataColumnSidecars
         .map((dCol) => `${dCol.signedBlockHeader.message.slot}:${dCol.index}`)

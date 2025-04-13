@@ -47,6 +47,7 @@ import {isOptimisticBlock} from "../../../../util/forkChoice.js";
 import {promiseAllMaybeAsync} from "../../../../util/promises.js";
 import {ApiModules} from "../../types.js";
 import {getBlockResponse, toBeaconHeaderResponse} from "./utils.js";
+import {DataColumnSidecars} from "../../../../util/types.js";
 
 type PublishBlockOpts = ImportBlockOpts;
 
@@ -80,7 +81,7 @@ export function getBeaconBlockApi({
     let blockForImport: BlockInput,
       signedBlock: SignedBeaconBlock,
       blobSidecars: deneb.BlobSidecars,
-      dataColumnSidecars: fulu.DataColumnSidecars;
+      dataColumnSidecars: DataColumnSidecars;
 
     if (isSignedBlockContents(signedBlockOrContents)) {
       ({signedBlock} = signedBlockOrContents);

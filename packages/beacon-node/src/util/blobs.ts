@@ -7,12 +7,12 @@ import {
   ForkName,
   KZG_COMMITMENTS_GINDEX,
   KZG_COMMITMENT_GINDEX0,
-  NUMBER_OF_COLUMNS,
   VERSIONED_HASH_VERSION_KZG,
 } from "@lodestar/params";
 import {signedBlockToSignedHeader} from "@lodestar/state-transition";
 import {BeaconBlockBody, SSZTypesFor, SignedBeaconBlock, deneb, fulu, ssz} from "@lodestar/types";
 import {ckzg} from "./kzg.js";
+import {DataColumnSidecars} from "./types.js";
 
 type VersionHash = Uint8Array;
 
@@ -75,7 +75,7 @@ export function computeDataColumnSidecars(
   config: ChainForkConfig,
   signedBlock: SignedBeaconBlock,
   contents: fulu.Contents & {kzgCommitmentsInclusionProof?: fulu.KzgCommitmentsInclusionProof}
-): fulu.DataColumnSidecars {
+): DataColumnSidecars {
   const blobKzgCommitments = (signedBlock as deneb.SignedBeaconBlock).message.body.blobKzgCommitments;
   if (blobKzgCommitments === undefined) {
     throw Error("Invalid block with missing blobKzgCommitments for computeBlobSidecars");
@@ -90,14 +90,17 @@ export function computeDataColumnSidecars(
   const {blobs, kzgProofs} = contents;
   const cellsAndProofs = Array.from({length: blobs.length}, (_, rowNumber) => {
     const cells = ckzg.computeCells(blobs[rowNumber]);
-    const proofs = kzgProofs.slice(rowNumber * NUMBER_OF_COLUMNS, (rowNumber + 1) * NUMBER_OF_COLUMNS);
+    const proofs = kzgProofs.slice(rowNumber * config.NUMBER_OF_COLUMNS, (rowNumber + 1) * config.NUMBER_OF_COLUMNS);
     return {cells, proofs};
   });
 
-  return Array.from({length: NUMBER_OF_COLUMNS}, (_, columnIndex) => {
+  return Array.from({length: config.NUMBER_OF_COLUMNS}, (_, columnIndex) => {
     // columnIndex'th column
     const column = Array.from({length: blobs.length}, (_, rowNumber) => cellsAndProofs[rowNumber].cells[columnIndex]);
-    const columnKzgProofs = Array.from({length: blobs.length}, (_, rowNumber) => cellsAndProofs[rowNumber].proofs[columnIndex]);
+    const columnKzgProofs = Array.from(
+      {length: blobs.length},
+      (_, rowNumber) => cellsAndProofs[rowNumber].proofs[columnIndex]
+    );
     return {
       index: columnIndex,
       column,

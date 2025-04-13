@@ -1,6 +1,6 @@
 import {fromHexString} from "@chainsafe/ssz";
 import {createBeaconConfig, createChainForkConfig, defaultChainConfig} from "@lodestar/config";
-import {NUMBER_OF_COLUMNS, NUMBER_OF_CUSTODY_GROUPS} from "@lodestar/params";
+import {NUMBER_OF_CUSTODY_GROUPS} from "@lodestar/params";
 import {ssz} from "@lodestar/types";
 import {bigIntToBytes} from "@lodestar/utils";
 import {CachedBeaconStateAllForks} from "@lodestar/state-transition";
@@ -162,7 +162,7 @@ describe("getDataColumns", () => {
     it(`${nodeIdHex} / ${numSubnets}`, async () => {
       const nodeId = nodeIdHex.length === 64 ? fromHexString(nodeIdHex) : bigIntToBytes(BigInt(nodeIdHex), 32, "be");
 
-      const columnIndexs = getDataColumns(nodeId, numSubnets);
+      const columnIndexs = getDataColumns(config, nodeId, numSubnets);
       expect(columnIndexs).toEqual(custodyColumns);
     });
   }
@@ -216,7 +216,7 @@ describe("data column sidecars", () => {
     expect(columnSidecars.length).toEqual(NUMBER_OF_COLUMNS);
     expect(columnSidecars[0].column.length).toEqual(blobs.length);
 
-    expect(validateDataColumnsSidecars(slot, blockRoot, kzgCommitments, columnSidecars)).toBeUndefined();
+    expect(validateDataColumnsSidecars(config, slot, blockRoot, kzgCommitments, columnSidecars)).toBeUndefined();
   });
 
   it("fail for no blob commitments in validateDataColumnsSidecars", () => {
@@ -254,7 +254,7 @@ describe("data column sidecars", () => {
     expect(columnSidecars.length).toEqual(NUMBER_OF_COLUMNS);
     expect(columnSidecars[0].column.length).toEqual(blobs.length);
 
-    expect(() => validateDataColumnsSidecars(slot, blockRoot, [], columnSidecars)).toThrow(
+    expect(() => validateDataColumnsSidecars(config, slot, blockRoot, [], columnSidecars)).toThrow(
       `Invalid data column sidecar slot=${slot}`
     );
   });

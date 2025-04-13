@@ -4,7 +4,7 @@ import {PeerId} from "@libp2p/interface";
 import {routes} from "@lodestar/api";
 import {BeaconConfig} from "@lodestar/config";
 import {LoggerNode} from "@lodestar/logger/node";
-import {DATA_COLUMN_SIDECAR_SUBNET_COUNT, ForkSeq, NUMBER_OF_COLUMNS} from "@lodestar/params";
+import {DATA_COLUMN_SIDECAR_SUBNET_COUNT, ForkSeq} from "@lodestar/params";
 import {ResponseIncoming} from "@lodestar/reqresp";
 import {computeStartSlotAtEpoch, computeTimeAtSlot} from "@lodestar/state-transition";
 import {
@@ -34,7 +34,11 @@ import {Metrics, RegistryMetricCreator} from "../metrics/index.js";
 import {IClock} from "../util/clock.js";
 import {CustodyConfig} from "../util/dataColumns.js";
 import {PeerIdStr, peerIdToString} from "../util/peerId.js";
-import {BlobSidecarsByRootRequest} from "../util/types.js";
+import {
+  BlobSidecarsByRootRequest,
+  DataColumnSidecarsByRangeRequest,
+  DataColumnSidecarsByRootRequest,
+} from "../util/types.js";
 import {INetworkCore, NetworkCore, WorkerNetworkCore} from "./core/index.js";
 import {INetworkEventBus, NetworkEvent, NetworkEventBus, NetworkEventData} from "./events.js";
 import {getActiveForks} from "./forks.js";
@@ -572,19 +576,19 @@ export class Network implements INetwork {
 
   async sendDataColumnSidecarsByRange(
     peerId: PeerIdStr,
-    request: fulu.DataColumnSidecarsByRangeRequest
+    request: DataColumnSidecarsByRangeRequest
   ): Promise<fulu.DataColumnSidecar[]> {
     return collectMaxResponseTyped(
       this.sendReqRespRequest(peerId, ReqRespMethod.DataColumnSidecarsByRange, [Version.V1], request),
       // request's count represent the slots, so the actual max count received could be slots * blobs per slot
-      request.count * NUMBER_OF_COLUMNS,
+      request.count * this.config.NUMBER_OF_COLUMNS,
       responseSszTypeByMethod[ReqRespMethod.DataColumnSidecarsByRange]
     );
   }
 
   async sendDataColumnSidecarsByRoot(
     peerId: PeerIdStr,
-    request: fulu.DataColumnSidecarsByRootRequest
+    request: DataColumnSidecarsByRootRequest
   ): Promise<fulu.DataColumnSidecar[]> {
     return collectMaxResponseTyped(
       this.sendReqRespRequest(peerId, ReqRespMethod.DataColumnSidecarsByRoot, [Version.V1], request),

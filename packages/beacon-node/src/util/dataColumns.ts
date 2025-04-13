@@ -3,7 +3,6 @@ import {ChainForkConfig} from "@lodestar/config";
 import {
   DATA_COLUMN_SIDECAR_SUBNET_COUNT,
   EFFECTIVE_BALANCE_INCREMENT,
-  NUMBER_OF_COLUMNS,
   NUMBER_OF_CUSTODY_GROUPS,
 } from "@lodestar/params";
 import {ColumnIndex, CustodyIndex, deneb, fulu, SignedBeaconBlockHeader, ValidatorIndex} from "@lodestar/types";
@@ -13,6 +12,7 @@ import {NodeId} from "../network/subnets/index.js";
 import {CachedBeaconStateAllForks, signedBlockToSignedHeader} from "@lodestar/state-transition";
 import {ckzg} from "./kzg.js";
 import {computeKzgCommitmentsInclusionProof} from "./blobs.js";
+import {DataColumnSidecars} from "./types.js";
 
 export class CustodyConfig {
   /**
@@ -66,24 +66,24 @@ export class CustodyConfig {
     this.config = config;
     this.nodeId = nodeId;
     this.targetCustodyGroupCount = Math.max(config.CUSTODY_REQUIREMENT, config.NODE_CUSTODY_REQUIREMENT);
-    this.custodyColumns = getDataColumns(this.nodeId, this.targetCustodyGroupCount);
+    this.custodyColumns = getDataColumns(this.config, this.nodeId, this.targetCustodyGroupCount);
     this.custodyColumnsIndex = this.getCustodyColumnsIndex(this.custodyColumns);
     this.advertisedCustodyGroupCount = this.targetCustodyGroupCount;
     this.sampledGroupCount = Math.max(this.targetCustodyGroupCount, this.config.SAMPLES_PER_SLOT);
     this.sampleGroups = getCustodyGroups(this.nodeId, this.sampledGroupCount);
-    this.sampledColumns = getDataColumns(this.nodeId, this.sampledGroupCount);
+    this.sampledColumns = getDataColumns(this.config, this.nodeId, this.sampledGroupCount);
     this.sampledSubnets = this.sampledColumns.map(computeSubnetForDataColumn);
   }
 
   updateTargetCustodyGroupCount(targetCustodyGroupCount: number) {
     this.targetCustodyGroupCount = targetCustodyGroupCount;
-    this.custodyColumns = getDataColumns(this.nodeId, this.targetCustodyGroupCount);
+    this.custodyColumns = getDataColumns(this.config, this.nodeId, this.targetCustodyGroupCount);
     this.custodyColumnsIndex = this.getCustodyColumnsIndex(this.custodyColumns);
     // TODO: Porting this over to match current behavior, but I think this incorrectly mixes units:
     // SAMPLES_PER_SLOT is in columns, and CUSTODY_GROUP_COUNT is in groups
     this.sampledGroupCount = Math.max(this.targetCustodyGroupCount, this.config.SAMPLES_PER_SLOT);
     this.sampleGroups = getCustodyGroups(this.nodeId, this.sampledGroupCount);
-    this.sampledColumns = getDataColumns(this.nodeId, this.sampledGroupCount);
+    this.sampledColumns = getDataColumns(this.config, this.nodeId, this.sampledGroupCount);
     this.sampledSubnets = this.sampledColumns.map(computeSubnetForDataColumn);
   }
 
@@ -94,7 +94,7 @@ export class CustodyConfig {
   private getCustodyColumnsIndex(custodyColumns: ColumnIndex[]): Uint8Array {
     // custody columns map which column maps to which index in the array of columns custodied
     // with zero representing it is not custodied
-    const custodyColumnsIndex = new Uint8Array(NUMBER_OF_COLUMNS);
+    const custodyColumnsIndex = new Uint8Array(this.config.NUMBER_OF_COLUMNS);
     let custodyAtIndex = 1;
     for (const columnIndex of custodyColumns) {
       custodyColumnsIndex[columnIndex] = custodyAtIndex;
@@ -138,11 +138,11 @@ export function getValidatorsCustodyRequirement(
  * SPEC FUNCTION
  * https://github.com/ethereum/consensus-specs/blob/dev/specs/fulu/das-core.md#compute_columns_for_custody_group
  */
-export function computeColumnsForCustodyGroup(custodyIndex: CustodyIndex): ColumnIndex[] {
+export function computeColumnsForCustodyGroup(config: ChainForkConfig, custodyIndex: CustodyIndex): ColumnIndex[] {
   if (custodyIndex > NUMBER_OF_CUSTODY_GROUPS) {
     custodyIndex = NUMBER_OF_CUSTODY_GROUPS;
   }
-  const columnsPerCustodyGroup = Number(NUMBER_OF_COLUMNS / NUMBER_OF_CUSTODY_GROUPS);
+  const columnsPerCustodyGroup = Number(config.NUMBER_OF_COLUMNS / NUMBER_OF_CUSTODY_GROUPS);
   const columnIndexes = [];
   for (let i = 0; i < columnsPerCustodyGroup; i++) {
     columnIndexes.push(NUMBER_OF_CUSTODY_GROUPS * i + custodyIndex);
@@ -189,9 +189,9 @@ export function getCustodyGroups(nodeId: NodeId, custodyGroupCount: number): Cus
   return custodyGroups;
 }
 
-export function getDataColumns(nodeId: NodeId, custodyGroupCount: number): ColumnIndex[] {
+export function getDataColumns(config: ChainForkConfig, nodeId: NodeId, custodyGroupCount: number): ColumnIndex[] {
   return getCustodyGroups(nodeId, custodyGroupCount)
-    .flatMap(computeColumnsForCustodyGroup)
+    .flatMap((custodyGroup) => computeColumnsForCustodyGroup(config, custodyGroup))
     .sort((a, b) => a - b);
 }
 
@@ -218,17 +218,18 @@ export function getCellsAndProofs(blobs: fulu.BlobAndProofV2[]): [Uint8Array[], 
  * https://github.com/ethereum/consensus-specs/blob/dev/specs/fulu/validator.md#get_data_column_sidecars
  */
 export function getDataColumnSidecars(
+  config: ChainForkConfig,
   signedBlockHeader: SignedBeaconBlockHeader,
   kzgCommitments: deneb.KZGCommitment[],
   kzgCommitmentsInclusionProof: fulu.KzgCommitmentsInclusionProof,
   cellsAndKzgProofs: [Uint8Array[], Uint8Array[]][]
-): fulu.DataColumnSidecars {
+): DataColumnSidecars {
   if (cellsAndKzgProofs.length !== kzgCommitments.length) {
     throw Error("Invalid cellsAndKzgProofs length for getDataColumnSidecars");
   }
 
-  const sidecars: fulu.DataColumnSidecars = [];
-  for (let columnIndex = 0; columnIndex < NUMBER_OF_COLUMNS; columnIndex++) {
+  const sidecars: DataColumnSidecars = [];
+  for (let columnIndex = 0; columnIndex < config.NUMBER_OF_COLUMNS; columnIndex++) {
     const columnCells = [];
     const columnProofs = [];
     for (const [cells, proofs] of cellsAndKzgProofs) {
@@ -258,14 +259,20 @@ export function getDataColumnSidecarsFromBlock(
   config: ChainForkConfig,
   signedBlock: fulu.SignedBeaconBlock,
   cellsAndKzgProofs: [Uint8Array[], Uint8Array[]][]
-): fulu.DataColumnSidecars {
+): DataColumnSidecars {
   const blobKzgCommitments = signedBlock.message.body.blobKzgCommitments;
   const fork = config.getForkName(signedBlock.message.slot);
   const signedBlockHeader = signedBlockToSignedHeader(config, signedBlock);
 
   const kzgCommitmentsInclusionProof = computeKzgCommitmentsInclusionProof(fork, signedBlock.message.body);
 
-  return getDataColumnSidecars(signedBlockHeader, blobKzgCommitments, kzgCommitmentsInclusionProof, cellsAndKzgProofs);
+  return getDataColumnSidecars(
+    config,
+    signedBlockHeader,
+    blobKzgCommitments,
+    kzgCommitmentsInclusionProof,
+    cellsAndKzgProofs
+  );
 }
 
 /**
@@ -276,10 +283,12 @@ export function getDataColumnSidecarsFromBlock(
  * https://github.com/ethereum/consensus-specs/blob/dev/specs/fulu/validator.md#get_data_column_sidecars_from_column_sidecar
  */
 export function getDataColumnSidecarsFromColumnSidecar(
+  config: ChainForkConfig,
   sidecar: fulu.DataColumnSidecar,
   cellsAndKzgProofs: [Uint8Array[], Uint8Array[]][]
-): fulu.DataColumnSidecars {
+): DataColumnSidecars {
   return getDataColumnSidecars(
+    config,
     sidecar.signedBlockHeader,
     sidecar.kzgCommitments,
     sidecar.kzgCommitmentsInclusionProof,

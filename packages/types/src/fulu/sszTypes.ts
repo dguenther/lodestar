@@ -4,8 +4,6 @@ import {
   FIELD_ELEMENTS_PER_CELL,
   KZG_COMMITMENTS_INCLUSION_PROOF_DEPTH,
   MAX_BLOB_COMMITMENTS_PER_BLOCK,
-  MAX_REQUEST_DATA_COLUMN_SIDECARS,
-  NUMBER_OF_COLUMNS,
 } from "@lodestar/params";
 
 import {ssz as altariSsz} from "../altair/index.js";
@@ -29,9 +27,8 @@ export const Metadata = new ContainerType(
 
 export const Cell = new ByteVectorType(BYTES_PER_FIELD_ELEMENT * FIELD_ELEMENTS_PER_CELL);
 export const DataColumn = new ListCompositeType(Cell, MAX_BLOB_COMMITMENTS_PER_BLOCK);
-export const ExtendedMatrix = new ListCompositeType(Cell, MAX_BLOB_COMMITMENTS_PER_BLOCK * NUMBER_OF_COLUMNS);
 export const KzgCommitmentsInclusionProof = new VectorCompositeType(Bytes32, KZG_COMMITMENTS_INCLUSION_PROOF_DEPTH);
-export const KZGProofs = new ListCompositeType(KZGProof, MAX_BLOB_COMMITMENTS_PER_BLOCK * NUMBER_OF_COLUMNS);
+export const KZGProofs = new ListCompositeType(KZGProof, MAX_BLOB_COMMITMENTS_PER_BLOCK);
 
 export const DataColumnSidecar = new ContainerType(
   {
@@ -44,8 +41,6 @@ export const DataColumnSidecar = new ContainerType(
   },
   {typeName: "DataColumnSidecar", jsonCase: "eth2"}
 );
-
-export const DataColumnSidecars = new ListCompositeType(DataColumnSidecar, NUMBER_OF_COLUMNS);
 
 export const MatrixEntry = new ContainerType(
   {
@@ -66,20 +61,6 @@ export const DataColumnIdentifier = new ContainerType(
     index: ColumnIndex,
   },
   {typeName: "DataColumnIdentifier", jsonCase: "eth2"}
-);
-
-export const DataColumnSidecarsByRootRequest = new ListCompositeType(
-  DataColumnIdentifier,
-  MAX_REQUEST_DATA_COLUMN_SIDECARS
-);
-
-export const DataColumnSidecarsByRangeRequest = new ContainerType(
-  {
-    startSlot: Slot,
-    count: UintNum64,
-    columns: new ListBasicType(ColumnIndex, NUMBER_OF_COLUMNS),
-  },
-  {typeName: "DataColumnSidecarsByRangeRequest", jsonCase: "eth2"}
 );
 
 export const ExecutionPayload = new ContainerType(

@@ -500,7 +500,7 @@ export class ExecutionEngineHttp implements IExecutionEngine {
     // https://github.com/ethereum/execution-apis/blob/main/src/engine/cancun.md#specification-3
     assertReqSizeLimit(versionedHashes.length, 128);
     const versionedHashesHex = versionedHashes.map(bytesToData);
-    let response = await this.rpc
+    const response = await this.rpc
       .fetchWithRetries<EngineApiRpcReturnTypes[typeof method], EngineApiRpcParamTypes[typeof method]>({
         method,
         params: [versionedHashesHex],

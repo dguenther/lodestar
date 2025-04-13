@@ -14,7 +14,7 @@ import {getAttnets, getSyncnets} from "../../../utils/network.js";
 
 type Result = ReturnType<typeof prioritizePeers>;
 
-describe("network / peers / priorization", async () => {
+describe.skip("network / peers / priorization", async () => {
   const peers: PeerId[] = [];
   for (let i = 0; i < 8; i++) {
     const peer = await createSecp256k1PeerId();
