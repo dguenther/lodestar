@@ -712,6 +712,7 @@ export class Network implements INetwork {
   };
 
   private onPeerDisconnected = (data: NetworkEventData[NetworkEvent.peerDisconnected]): void => {
+    this.logger.warn("onPeerDisconnected", {peer: data.peer});
     this.connectedPeers.delete(data.peer);
   };
 

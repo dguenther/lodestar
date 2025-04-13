@@ -308,11 +308,6 @@ export class PeerManager {
   private onPing(peer: PeerId, seqNumber: phase0.Ping): void {
     // if the sequence number is unknown update the peer's metadata
     const metadata = this.connectedPeers.get(peer.toString())?.metadata;
-    this.logger.warn("onPing", {
-      seqNumber,
-      metaSeqNumber: metadata?.seqNumber,
-      cond: !metadata || metadata.seqNumber < seqNumber,
-    });
     if (!metadata || metadata.seqNumber < seqNumber) {
       void this.requestMetadata(peer);
     }
