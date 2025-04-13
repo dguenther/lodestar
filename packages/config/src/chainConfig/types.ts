@@ -88,6 +88,7 @@ export type ChainConfig = {
   NODE_CUSTODY_REQUIREMENT: number;
   VALIDATOR_CUSTODY_REQUIREMENT: number;
   BALANCE_PER_ADDITIONAL_CUSTODY_GROUP: number;
+  MAX_BLOBS_PER_BLOCK_FULU: number;
 };
 
 export const chainConfigTypes: SpecTypes<ChainConfig> = {
@@ -168,6 +169,7 @@ export const chainConfigTypes: SpecTypes<ChainConfig> = {
   NODE_CUSTODY_REQUIREMENT: "number",
   VALIDATOR_CUSTODY_REQUIREMENT: "number",
   BALANCE_PER_ADDITIONAL_CUSTODY_GROUP: "number",
+  MAX_BLOBS_PER_BLOCK_FULU: "number",
 };
 
 /** Allows values in a Spec file */
