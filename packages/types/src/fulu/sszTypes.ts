@@ -13,7 +13,6 @@ import {ssz as denebSsz} from "../deneb/index.js";
 import {ssz as electraSsz} from "../electra/index.js";
 import {ssz as phase0Ssz} from "../phase0/index.js";
 import {ssz as primitiveSsz} from "../primitive/index.js";
-import {Blobs, KZGProof} from "../deneb/sszTypes.js";
 
 const {BLSSignature, Root, ColumnIndex, RowIndex, Bytes32, Slot, UintNum64} = primitiveSsz;
 
@@ -230,7 +229,7 @@ export const BlockContents = new ContainerType(
   {
     block: BeaconBlock,
     kzgProofs: KZGProofs,
-    blobs: Blobs,
+    blobs: denebSsz.Blobs,
   },
   {typeName: "BlockContents", jsonCase: "eth2"}
 );
@@ -239,7 +238,7 @@ export const SignedBlockContents = new ContainerType(
   {
     signedBlock: SignedBeaconBlock,
     kzgProofs: KZGProofs,
-    blobs: Blobs,
+    blobs: denebSsz.Blobs,
   },
   {typeName: "SignedBlockContents", jsonCase: "eth2"}
 );
