@@ -410,8 +410,7 @@ export class SeenGossipBlockInput {
     const blobs = await this.executionEngine.getBlobs(blockCache.fork, versionedHashes);
 
     // Execution engine was unable to find one or more blobs
-    // TODO: as of peerdas-devnet-6, reth currently sends an empty array if it doesn't have 1+ blobs, but spec says to return null.
-    if (blobs === null || blobs.length === 0) {
+    if (blobs === null) {
       return;
     }
 
