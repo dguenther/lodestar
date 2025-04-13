@@ -270,12 +270,8 @@ function getSequentialHandlers(modules: ValidatorFnsModules, options: GossipHand
     peerIdStr: string,
     seenTimestampSec: number
   ): Promise<BlockInput | NullBlockInput> {
-    if (!metrics) {
-      logger.warn("Missing metrics");
-    } else {
-      metrics.peerDas.dataColumnSidecarProcessingRequests.inc();
-      logger.info("incd beacon_data_column_sidecar_processing_requests_total");
-    }
+    metrics?.peerDas.dataColumnSidecarProcessingRequests.inc();
+    const verificationTimer = metrics?.peerDas.dataColumnSidecarGossipVerificationSeconds.startTimer();
 
     const dataColumnBlockHeader = dataColumnSidecar.signedBlockHeader.message;
     const slot = dataColumnBlockHeader.slot;
@@ -300,6 +296,7 @@ function getSequentialHandlers(modules: ValidatorFnsModules, options: GossipHand
       const recvToValidation = Date.now() / 1000 - seenTimestampSec;
       const validationTime = recvToValidation - recvToValLatency;
 
+      metrics?.peerDas.dataColumnSidecarProcessingSuccesses.inc();
       metrics?.gossipBlob.recvToValidation.observe(recvToValidation);
       metrics?.gossipBlob.validationTime.observe(validationTime);
 
@@ -336,6 +333,8 @@ function getSequentialHandlers(modules: ValidatorFnsModules, options: GossipHand
       }
 
       throw e;
+    } finally {
+      verificationTimer?.();
     }
   }
 
