@@ -2,7 +2,7 @@ import {toHexString} from "@chainsafe/ssz";
 import {ChainForkConfig} from "@lodestar/config";
 import {ForkName, NUMBER_OF_COLUMNS, isForkPostDeneb} from "@lodestar/params";
 import {RootHex, SignedBeaconBlock, deneb, fulu, ssz} from "@lodestar/types";
-import {pruneSetToMax} from "@lodestar/utils";
+import {Logger, pruneSetToMax} from "@lodestar/utils";
 
 import {IExecutionEngine} from "../../execution/index.js";
 import {Metrics} from "../../metrics/index.js";
@@ -91,11 +91,18 @@ export class SeenGossipBlockInput {
   private readonly custodyConfig: CustodyConfig;
   private readonly executionEngine: IExecutionEngine;
   private readonly emitter: ChainEventEmitter;
+  private readonly logger: Logger;
 
-  constructor(custodyConfig: CustodyConfig, executionEngine: IExecutionEngine, emitter: ChainEventEmitter) {
+  constructor(
+    custodyConfig: CustodyConfig,
+    executionEngine: IExecutionEngine,
+    emitter: ChainEventEmitter,
+    logger: Logger
+  ) {
     this.custodyConfig = custodyConfig;
     this.executionEngine = executionEngine;
     this.emitter = emitter;
+    this.logger = logger;
   }
   globalCacheId = 0;
 
@@ -419,6 +426,11 @@ export class SeenGossipBlockInput {
       return;
     }
 
+    const slot =
+      blockCache.block?.message.slot ??
+      blockCache.cachedData?.dataColumnsCache.values().next().value?.dataColumn.signedBlockHeader.message.slot;
+    this.logger.info(`Reconstructing columns from engine_getblobsv2 for slot ${slot}`);
+
     let dataColumnSidecars: fulu.DataColumnSidecars;
     const cellsAndProofs = getCellsAndProofs(blobs);
     if (blockCache.block) {
@@ -436,6 +448,21 @@ export class SeenGossipBlockInput {
     } else {
       throw new Error("blockInputCache missing both block and cachedData");
     }
+
+    const missing = [];
+    const has = [];
+    for (const column of this.custodyConfig.sampledColumns) {
+      if (!blockCache.cachedData) {
+        missing.push(column);
+      } else {
+        if (blockCache.cachedData.dataColumnsCache.has(column)) {
+          has.push(column);
+        } else {
+          missing.push(column);
+        }
+      }
+    }
+    this.logger.info(`Already have: [${has}], missing: [${missing}]`);
 
     // Publish columns if and only if subscribed to them
     const sampledColumns = this.custodyConfig.sampledColumns.map((columnIndex) => dataColumnSidecars[columnIndex]);
