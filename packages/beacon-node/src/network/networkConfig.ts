@@ -1,6 +1,6 @@
 import {BeaconConfig} from "@lodestar/config";
-import {NodeId, computeNodeId} from "./subnets";
-import {CustodyConfig, computeCustodyConfig} from "../util/dataColumns";
+import {NodeId, computeNodeId} from "./subnets/interface.js";
+import {CustodyConfig, computeCustodyConfig} from "../util/dataColumns.js";
 import {PeerId} from "@libp2p/interface";
 
 /**
