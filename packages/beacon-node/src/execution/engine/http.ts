@@ -498,7 +498,7 @@ export class ExecutionEngineHttp implements IExecutionEngine {
     // https://github.com/ethereum/execution-apis/blob/main/src/engine/cancun.md#specification-3
     assertReqSizeLimit(versionedHashes.length, 128);
     const versionedHashesHex = versionedHashes.map(bytesToData);
-    let response = await this.rpc
+    const response = await this.rpc
       .fetchWithRetries<EngineApiRpcReturnTypes[typeof method], EngineApiRpcParamTypes[typeof method]>({
         method,
         params: [versionedHashesHex],
@@ -520,9 +520,10 @@ export class ExecutionEngineHttp implements IExecutionEngine {
       });
 
     // engine_getBlobsV2 does not return partial responses. It returns an empty array if any blob is not found
+    // TODO: Spec says to return null if any blob is not found, but reth and nethermind return empty arrays as of peerdas-devnet-6
     const invalidLength =
       method === "engine_getBlobsV2"
-        ? response && response.length !== versionedHashes.length
+        ? response && response.length !== 0 && response.length !== versionedHashes.length
         : !response || response.length !== versionedHashes.length;
 
     if (invalidLength) {
@@ -537,7 +538,8 @@ export class ExecutionEngineHttp implements IExecutionEngine {
         return (response as EngineApiRpcReturnTypes[typeof method]).map(deserializeBlobAndProofs);
       case "engine_getBlobsV2": {
         const castResponse = response as EngineApiRpcReturnTypes[typeof method];
-        if (castResponse === null) return null;
+        // TODO: Spec says to return null if any blob is not found, but reth and nethermind return empty arrays as of peerdas-devnet-6
+        if (castResponse === null || castResponse.length === 0) return null;
         return castResponse.map(deserializeBlobAndProofsV2);
       }
     }
