@@ -1,10 +1,15 @@
 import fs from "node:fs";
+import {createChainForkConfig} from "@lodestar/config";
+import {chainConfig} from "@lodestar/config/default";
 import {peerIdFromPrivateKey} from "@libp2p/peer-id";
 import tmp from "tmp";
 import {afterEach, beforeEach, describe, expect, it} from "vitest";
 import {initPrivateKeyAndEnr} from "../../../src/cmds/beacon/initPeerIdAndEnr.js";
 import {BeaconArgs} from "../../../src/cmds/beacon/options.js";
 import {testLogger} from "../../utils.js";
+import {getV4Crypto} from "@chainsafe/enr";
+import {fromHex} from "@lodestar/utils";
+import { publicKeyToProtobuf } from "@libp2p/crypto/keys";
 
 const chainForkConfig = createChainForkConfig(chainConfig);
 
@@ -21,13 +26,22 @@ describe("initPeerIdAndEnr", () => {
 
   it("first time should create a new enr and peer id", async () => {
     const {enr, privateKey} = await initPrivateKeyAndEnr(
+      chainForkConfig,
       {persistNetworkIdentity: true} as unknown as BeaconArgs,
       tmpDir.name,
       testLogger(),
       true
     );
     // "enr peer id doesn't equal the returned peer id"
-    expect(enr.peerId.toString()).toBe(peerIdFromPrivateKey(privateKey).toString());
+    const peerId = peerIdFromPrivateKey(privateKey);
+    expect(enr.peerId.toString()).toBe(peerId.toString());
+    const nodeIdFromEnr = enr.nodeId;
+    const nodeIdFromPubkey = getV4Crypto().nodeId(peerId.publicKey.raw);
+    expect(nodeIdFromPubkey).toEqual(nodeIdFromEnr);
+    // const publicKey2 = publicKeyToProtobuf(privateKey.publicKey);
+    // const nodeIdFromPublickey2 = getV4Crypto().nodeId(publicKey2);
+    // expect(nodeIdFromPublickey2).toEqual(nodeIdFromEnr);
+    expect(fromHex(nodeIdFromEnr).length).toEqual(32);
     expect(enr.seq).toBe(BigInt(1));
     expect(enr.tcp).toBeUndefined();
     expect(enr.tcp6).toBeUndefined();
@@ -35,6 +49,7 @@ describe("initPeerIdAndEnr", () => {
 
   it("second time should use ths existing enr and peer id", async () => {
     const run1 = await initPrivateKeyAndEnr(
+      chainForkConfig,
       {persistNetworkIdentity: true} as unknown as BeaconArgs,
       tmpDir.name,
       testLogger(),
@@ -42,6 +57,7 @@ describe("initPeerIdAndEnr", () => {
     );
 
     const run2 = await initPrivateKeyAndEnr(
+      chainForkConfig,
       {persistNetworkIdentity: true} as unknown as BeaconArgs,
       tmpDir.name,
       testLogger(),
