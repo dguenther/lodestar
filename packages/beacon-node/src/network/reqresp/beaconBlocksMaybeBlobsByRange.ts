@@ -319,7 +319,6 @@ export function matchBlockWithDataColumns(
             allBlocks: allBlocks.length,
             allDataColumnSidecars: allDataColumnSidecars.length,
             peerId,
-            nodeId: toHexString(computeNodeId(peerId)),
             blobKzgCommitmentsLen,
             peerClient,
           }

@@ -2,7 +2,6 @@ import {PeerId, PrivateKey} from "@libp2p/interface";
 import {peerIdFromPrivateKey} from "@libp2p/peer-id";
 import {getV4Crypto} from "@chainsafe/enr";
 import {fromHexString} from "@chainsafe/ssz";
-import {peerIdFromString} from "@libp2p/peer-id";
 import {ForkName} from "@lodestar/params";
 import {Bytes32, Slot, SubnetID, ValidatorIndex} from "@lodestar/types";
 import {GossipTopic} from "../gossip/interface.js";
@@ -58,16 +57,9 @@ export function computeNodeIdFromPrivateKey(privateKey: PrivateKey): NodeId {
   return computeNodeId(peerId);
 }
 
-export function computeNodeId(peerIdOrStr: PeerId | PeerIdStr): Uint8Array {
-  let peerId: PeerId;
-  if (typeof peerIdOrStr === "string") {
-    peerId = peerIdFromString(peerIdOrStr as string);
-  } else {
-    peerId = peerIdOrStr;
-  }
-
+export function computeNodeId(peerId: PeerId): Uint8Array {
   if (peerId.publicKey === undefined) {
-    throw Error(`Undefined publicKey typeof peerIdOrStr=${typeof peerIdOrStr} peerIdOrStr=${peerIdOrStr.toString()}`);
+    throw Error(`Undefined publicKey peerId=${peerId.toString()}`);
   }
   const nodeIdHex = getV4Crypto().nodeId(peerId.publicKey.raw);
   return fromHexString(nodeIdHex);

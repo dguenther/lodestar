@@ -29,7 +29,7 @@ import {ReqRespBeaconNode} from "../reqresp/ReqRespBeaconNode.js";
 import {GetReqRespHandlerFn, OutgoingRequestArgs} from "../reqresp/types.js";
 import {LocalStatusCache} from "../statusCache.js";
 import {AttnetsService} from "../subnets/attnetsService.js";
-import {CommitteeSubscription, IAttnetsService, computeNodeId} from "../subnets/interface.js";
+import {CommitteeSubscription, IAttnetsService} from "../subnets/interface.js";
 import {SyncnetsService} from "../subnets/syncnetsService.js";
 import {getConnectionsMap} from "../util.js";
 import {NetworkCoreMetrics, createNetworkCoreMetrics} from "./metrics.js";
