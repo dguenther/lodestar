@@ -1,7 +1,7 @@
 import {ENR} from "@chainsafe/enr";
 import {PeerScoreStatsDump} from "@chainsafe/libp2p-gossipsub/dist/src/score/peer-score.js";
 import {PublishOpts} from "@chainsafe/libp2p-gossipsub/types";
-import {Connection, PeerId} from "@libp2p/interface";
+import {Connection, PrivateKey} from "@libp2p/interface";
 import {routes} from "@lodestar/api";
 import {BeaconConfig} from "@lodestar/config";
 import type {LoggerNode} from "@lodestar/logger/node";
@@ -57,7 +57,7 @@ type Mods = {
 export type BaseNetworkInit = {
   opts: NetworkOptions;
   config: BeaconConfig;
-  peerId: PeerId;
+  privateKey: PrivateKey;
   peerStoreDir: string | undefined;
   logger: LoggerNode;
   metricsRegistry: RegistryMetricCreator | null;
@@ -130,7 +130,7 @@ export class NetworkCore implements INetworkCore {
   static async init({
     opts,
     config,
-    peerId,
+    privateKey,
     peerStoreDir,
     logger,
     metricsRegistry,
@@ -140,7 +140,7 @@ export class NetworkCore implements INetworkCore {
     activeValidatorCount,
     initialStatus,
   }: BaseNetworkInit): Promise<NetworkCore> {
-    const libp2p = await createNodeJsLibp2p(peerId, opts, {
+    const libp2p = await createNodeJsLibp2p(privateKey, opts, {
       peerStoreDir,
       metrics: Boolean(metricsRegistry),
       metricsRegistry: metricsRegistry ?? undefined,
@@ -197,14 +197,15 @@ export class NetworkCore implements INetworkCore {
     // should be called before AttnetsService constructor so that node subscribe to deterministic attnet topics
     await gossip.start();
 
-    const networkConfig = new NetworkConfig(peerId, config);
+    const networkConfig = new NetworkConfig(privateKey, config);
     const attnetsService = new AttnetsService(config, clock, gossip, metadata, logger, metrics, networkConfig.getNodeId(), opts);
     const syncnetsService = new SyncnetsService(config, clock, gossip, metadata, logger, metrics, opts);
 
     const peerManager = await PeerManager.init(
       {
+        privateKey,
         libp2p,
-        gossip: gossip,
+        gossip,
         reqResp,
         attnetsService,
         syncnetsService,
@@ -370,7 +371,11 @@ export class NetworkCore implements INetworkCore {
   }
 
   getConnectionsByPeer(): Map<string, Connection[]> {
-    return getConnectionsMap(this.libp2p);
+    const m = new Map<string, Connection[]>();
+    for (const [k, v] of getConnectionsMap(this.libp2p).entries()) {
+      m.set(k, v.value);
+    }
+    return m;
   }
 
   async getConnectedPeers(): Promise<PeerIdStr[]> {

@@ -1,6 +1,6 @@
 import {ENR} from "@chainsafe/enr";
 import {toHexString} from "@chainsafe/ssz";
-import type {PeerId, PeerInfo} from "@libp2p/interface";
+import type {PeerId, PeerInfo, PrivateKey} from "@libp2p/interface";
 import {BeaconConfig} from "@lodestar/config";
 import {LoggerNode} from "@lodestar/logger/node";
 import {ATTESTATION_SUBNET_COUNT, ForkSeq, SYNC_COMMITTEE_SUBNET_COUNT} from "@lodestar/params";
@@ -40,6 +40,7 @@ export type PeerDiscoveryOpts = {
 
 export type PeerDiscoveryModules = {
   networkConfig: NetworkConfig;
+  privateKey: PrivateKey;
   libp2p: Libp2p;
   clock: IClock;
   peerRpcScores: IPeerRpcScoreStore;
@@ -201,7 +202,7 @@ export class PeerDiscovery {
   static async init(modules: PeerDiscoveryModules, opts: PeerDiscoveryOpts): Promise<PeerDiscovery> {
     const discv5 = await Discv5Worker.init({
       discv5: opts.discv5,
-      peerId: modules.libp2p.peerId,
+      privateKey: modules.privateKey,
       metrics: modules.metrics ?? undefined,
       logger: modules.logger,
       config: modules.networkConfig.getConfig(),
@@ -402,8 +403,7 @@ export class PeerDiscovery {
     if (this.randomNodeQuery.code === QueryStatusCode.Active) {
       this.randomNodeQuery.count++;
     }
-    // async due to some crypto that's no longer necessary
-    const peerId = await enr.peerId();
+    const peerId = enr.peerId;
     // tcp multiaddr is known to be be present, checked inside the worker
     const multiaddrTCP = enr.getLocationMultiaddr(ENRKey.tcp);
     if (!multiaddrTCP) {
@@ -630,7 +630,7 @@ export class PeerDiscovery {
   /** Check if there is 1+ open connection with this peer */
   private isPeerConnected(peerIdStr: PeerIdStr): boolean {
     const connections = getConnectionsMap(this.libp2p).get(peerIdStr);
-    return Boolean(connections?.some((connection) => connection.status === "open"));
+    return Boolean(connections?.value.some((connection) => connection.status === "open"));
   }
 }
 

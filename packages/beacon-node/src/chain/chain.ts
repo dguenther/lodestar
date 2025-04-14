@@ -1,4 +1,5 @@
 import path from "node:path";
+import {PrivateKey} from "@libp2p/interface";
 import {PubkeyIndexMap} from "@chainsafe/pubkey-index-map";
 import {CompositeTypeAny, TreeView, Type} from "@chainsafe/ssz";
 import {BeaconConfig} from "@lodestar/config";
@@ -46,7 +47,7 @@ import {IBeaconDb} from "../db/index.js";
 import {IEth1ForBlockProduction} from "../eth1/index.js";
 import {IExecutionBuilder, IExecutionEngine} from "../execution/index.js";
 import {Metrics} from "../metrics/index.js";
-import {NodeId} from "../network/subnets/interface.js";
+import {computeNodeIdFromPrivateKey} from "../network/subnets/interface.js";
 import {BufferPool} from "../util/bufferPool.js";
 import {Clock, ClockEvent, IClock} from "../util/clock.js";
 import {CustodyConfig, computeCustodyConfig} from "../util/dataColumns.js";
@@ -187,7 +188,7 @@ export class BeaconChain implements IBeaconChain {
   constructor(
     opts: IChainOptions,
     {
-      nodeId,
+      privateKey,
       config,
       db,
       dbName,
@@ -201,7 +202,7 @@ export class BeaconChain implements IBeaconChain {
       executionEngine,
       executionBuilder,
     }: {
-      nodeId: NodeId;
+      privateKey: PrivateKey;
       config: BeaconConfig;
       db: IBeaconDb;
       dbName: string;
@@ -244,9 +245,10 @@ export class BeaconChain implements IBeaconChain {
       config,
       clock,
       preAggregateCutOffTime,
-      this.opts?.preaggregateSlotDistance
+      this.opts?.preaggregateSlotDistance,
+      metrics
     );
-    this.aggregatedAttestationPool = new AggregatedAttestationPool(this.config);
+    this.aggregatedAttestationPool = new AggregatedAttestationPool(this.config, metrics);
     this.syncCommitteeMessagePool = new SyncCommitteeMessagePool(
       clock,
       preAggregateCutOffTime,
@@ -256,6 +258,7 @@ export class BeaconChain implements IBeaconChain {
     this.seenAggregatedAttestations = new SeenAggregatedAttestations(metrics);
     this.seenContributionAndProof = new SeenContributionAndProof(metrics);
     this.seenAttestationDatas = new SeenAttestationDatas(metrics, this.opts?.attDataCacheSlotDistance);
+    const nodeId = computeNodeIdFromPrivateKey(privateKey);
     this.custodyConfig = computeCustodyConfig(nodeId, config);
     this.seenGossipBlockInput = new SeenGossipBlockInput(this.custodyConfig);
 
@@ -382,7 +385,7 @@ export class BeaconChain implements IBeaconChain {
     }
 
     if (metrics) {
-      metrics.opPool.aggregatedAttestationPoolSize.addCollect(() => this.onScrapeMetrics(metrics));
+      metrics.clockSlot.addCollect(() => this.onScrapeMetrics(metrics));
     }
 
     // Event handlers. emitter is created internally and dropped on close(). Not need to .removeListener()
@@ -1085,10 +1088,8 @@ export class BeaconChain implements IBeaconChain {
   }
 
   private onScrapeMetrics(metrics: Metrics): void {
-    const {attestationCount, attestationDataCount} = this.aggregatedAttestationPool.getAttestationCount();
-    metrics.opPool.aggregatedAttestationPoolSize.set(attestationCount);
-    metrics.opPool.aggregatedAttestationPoolUniqueData.set(attestationDataCount);
-    metrics.opPool.attestationPoolSize.set(this.attestationPool.getAttestationCount());
+    // aggregatedAttestationPool tracks metrics on its own
+    metrics.opPool.attestationPool.size.set(this.attestationPool.getAttestationCount());
     metrics.opPool.attesterSlashingPoolSize.set(this.opPool.attesterSlashingsSize);
     metrics.opPool.proposerSlashingPoolSize.set(this.opPool.proposerSlashingsSize);
     metrics.opPool.voluntaryExitPoolSize.set(this.opPool.voluntaryExitsSize);

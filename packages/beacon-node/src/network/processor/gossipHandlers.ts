@@ -638,12 +638,13 @@ function getSequentialHandlers(modules: ValidatorFnsModules, options: GossipHand
       metrics?.registerGossipAggregatedAttestation(seenTimestampSec, signedAggregateAndProof, indexedAttestation);
       const aggregatedAttestation = signedAggregateAndProof.message.aggregate;
 
-      chain.aggregatedAttestationPool.add(
+      const insertOutcome = chain.aggregatedAttestationPool.add(
         aggregatedAttestation,
         attDataRootHex,
         indexedAttestation.attestingIndices.length,
         committeeIndices
       );
+      metrics?.opPool.aggregatedAttestationPool.gossipInsertOutcome.inc({insertOutcome});
 
       if (!options.dontSendGossipAttestationsToForkchoice) {
         try {
@@ -866,7 +867,7 @@ function getBatchHandlers(modules: ValidatorFnsModules, options: GossipHandlerOp
               committeeValidatorIndex,
               committeeSize
             );
-            metrics?.opPool.attestationPoolGossipInsertOutcome.inc({insertOutcome});
+            metrics?.opPool.attestationPool.gossipInsertOutcome.inc({insertOutcome});
           }
         } catch (e) {
           logger.error("Error adding unaggregated attestation to pool", {subnet}, e as Error);

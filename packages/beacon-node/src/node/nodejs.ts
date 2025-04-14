@@ -1,7 +1,8 @@
 import {setMaxListeners} from "node:events";
 import {Registry} from "prom-client";
 
-import {PeerId} from "@libp2p/interface";
+import {hasher} from "@chainsafe/persistent-merkle-tree";
+import {PrivateKey} from "@libp2p/interface";
 import {BeaconApiMethods} from "@lodestar/api/beacon/server";
 import {BeaconConfig} from "@lodestar/config";
 import type {LoggerNode} from "@lodestar/logger/node";
@@ -50,8 +51,7 @@ export type BeaconNodeInitModules = {
   db: IBeaconDb;
   logger: LoggerNode;
   processShutdownCallback: ProcessShutdownCallback;
-  peerId: PeerId;
-  nodeId: NodeId;
+  privateKey: PrivateKey;
   dataDir: string;
   peerStoreDir?: string;
   anchorState: BeaconStateAllForks;
@@ -149,14 +149,17 @@ export class BeaconNode {
     db,
     logger,
     processShutdownCallback,
-    peerId,
-    nodeId,
+    privateKey,
     dataDir,
     peerStoreDir,
     anchorState,
     wsCheckpoint,
     metricsRegistries = [],
   }: BeaconNodeInitModules): Promise<T> {
+    if (hasher.name !== "hashtree") {
+      throw Error(`Loaded incorrect hasher ${hasher.name}, expected hashtree`);
+    }
+
     const controller = new AbortController();
     // We set infinity to prevent MaxListenersExceededWarning which get logged when listeners > 10
     // Since it is perfectly fine to have listeners > 10
@@ -203,7 +206,7 @@ export class BeaconNode {
       : null;
 
     const chain = new BeaconChain(opts.chain, {
-      nodeId,
+      privateKey,
       config,
       clock,
       dataDir,
@@ -242,8 +245,7 @@ export class BeaconNode {
       metrics,
       chain,
       db,
-      peerId,
-      nodeId,
+      privateKey,
       peerStoreDir,
       getReqRespHandler: getReqRespHandlers({db, chain}),
     });
