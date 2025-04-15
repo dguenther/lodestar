@@ -17,6 +17,7 @@ import {
   ReqRespBeaconNodeModules,
 } from "../../../src/network/index.js";
 import {MetadataController} from "../../../src/network/metadata.js";
+import {NetworkConfig} from "../../../src/network/networkConfig.js";
 import {PeersData} from "../../../src/network/peers/peersData.js";
 import {GetReqRespHandlerFn} from "../../../src/network/reqresp/types.js";
 import {LocalStatusCache} from "../../../src/network/statusCache.js";
@@ -59,6 +60,7 @@ describe("reqresp encoder", () => {
       };
 
     const config = createBeaconConfig({}, ZERO_HASH);
+    const networkConfig = new NetworkConfig(libp2p.peerId, config);
     const modules: ReqRespBeaconNodeModules = {
       libp2p,
       peersData: new PeersData(),
@@ -66,7 +68,7 @@ describe("reqresp encoder", () => {
       config,
       metrics: null,
       getHandler: getHandler ?? getHandlerNoop,
-      metadata: new MetadataController({}, {config, onSetValue: () => null}),
+      metadata: new MetadataController({}, {networkConfig, onSetValue: () => null}),
       peerRpcScores: new PeerRpcScoreStore(),
       events: new NetworkEventBus(),
       statusCache: new LocalStatusCache(ssz.phase0.Status.defaultValue()),
