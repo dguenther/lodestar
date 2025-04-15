@@ -34,6 +34,7 @@ import {Metrics, RegistryMetricCreator} from "../metrics/index.js";
 import {IClock} from "../util/clock.js";
 import {CustodyConfig} from "../util/dataColumns.js";
 import {PeerIdStr, peerIdToString} from "../util/peerId.js";
+import {promiseAllMaybeAsync} from "../util/promises.js";
 import {BlobSidecarsByRootRequest} from "../util/types.js";
 import {INetworkCore, NetworkCore, WorkerNetworkCore} from "./core/index.js";
 import {INetworkEventBus, NetworkEvent, NetworkEventBus, NetworkEventData} from "./events.js";
@@ -55,7 +56,6 @@ import {
 import {collectSequentialBlocksInRange} from "./reqresp/utils/collectSequentialBlocksInRange.js";
 import {CommitteeSubscription, NodeId} from "./subnets/index.js";
 import {isPublishToZeroPeersError} from "./util.js";
-import {promiseAllMaybeAsync} from "../util/promises.js";
 
 type NetworkModules = {
   opts: NetworkOptions;

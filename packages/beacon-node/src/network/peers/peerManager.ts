@@ -14,23 +14,23 @@ import {INetworkEventBus, NetworkEvent, NetworkEventData} from "../events.js";
 import {Eth2Gossipsub} from "../gossip/gossipsub.js";
 import {Libp2p} from "../interface.js";
 import {SubnetType} from "../metadata.js";
+import {NetworkConfig} from "../networkConfig.js";
 import {ReqRespMethod} from "../reqresp/ReqRespBeaconNode.js";
 import {StatusCache} from "../statusCache.js";
 import {NodeId, SubnetsService, computeNodeId} from "../subnets/index.js";
 import {getConnection, getConnectionsMap, prettyPrintPeerId} from "../util.js";
 import {ClientKind, getKnownClientFromAgentVersion} from "./client.js";
 import {PeerDiscovery, SubnetDiscvQueryMs} from "./discover.js";
+import {PeerData, PeersData} from "./peersData.js";
 import {IPeerRpcScoreStore, PeerAction, PeerScoreStats, ScoreState, updateGossipsubScores} from "./score/index.js";
-import {PeersData, PeerData} from "./peersData.js";
 import {
+  PrioritizePeersOpts,
   assertPeerRelevance,
   getConnectedPeerIds,
   hasSomeConnectedPeer,
   prioritizePeers,
   renderIrrelevantPeerType,
-  PrioritizePeersOpts,
 } from "./utils/index.js";
-import {NetworkConfig} from "../networkConfig.js";
 
 /** heartbeat performs regular updates such as updating reputations and performing discovery requests */
 const HEARTBEAT_INTERVAL_MS = 30 * 1000;

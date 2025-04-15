@@ -2,16 +2,16 @@ import {createBeaconConfig, createChainForkConfig, defaultChainConfig} from "@lo
 import {ssz} from "@lodestar/types";
 import {describe, expect, it} from "vitest";
 
+import {ZERO_HASH_HEX} from "@lodestar/params";
 import {BlockInput, BlockInputType, GossipedInputType} from "../../../../src/chain/blocks/types.js";
+import {ChainEventEmitter} from "../../../../src/chain/emitter.js";
 import {
   BlockInputMetaPendingBlockWithBlobs,
   SeenGossipBlockInput,
 } from "../../../../src/chain/seenCache/seenGossipBlockInput.js";
-import {ExecutionEngineMockBackend} from "../../../../src/execution/engine/mock.js";
-import {ZERO_HASH_HEX} from "@lodestar/params";
 import {getExecutionEngineFromBackend} from "../../../../src/execution/engine/index.js";
+import {ExecutionEngineMockBackend} from "../../../../src/execution/engine/mock.js";
 import {testLogger} from "../../../utils/logger.js";
-import {ChainEventEmitter} from "../../../../src/chain/emitter.js";
 
 describe("SeenGossipBlockInput", () => {
   const chainConfig = createChainForkConfig({

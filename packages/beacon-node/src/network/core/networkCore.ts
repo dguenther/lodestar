@@ -21,6 +21,7 @@ import {Eth2Gossipsub, getCoreTopicsAtFork} from "../gossip/index.js";
 import {Libp2p} from "../interface.js";
 import {createNodeJsLibp2p} from "../libp2p/index.js";
 import {MetadataController} from "../metadata.js";
+import {NetworkConfig} from "../networkConfig.js";
 import {NetworkOptions} from "../options.js";
 import {PeerAction, PeerRpcScoreStore, PeerScoreStats} from "../peers/index.js";
 import {PeerManager} from "../peers/peerManager.js";
@@ -34,7 +35,6 @@ import {SyncnetsService} from "../subnets/syncnetsService.js";
 import {getConnectionsMap} from "../util.js";
 import {NetworkCoreMetrics, createNetworkCoreMetrics} from "./metrics.js";
 import {INetworkCore, MultiaddrStr, PeerIdStr} from "./types.js";
-import {NetworkConfig} from "../networkConfig.js";
 
 type Mods = {
   libp2p: Libp2p;
