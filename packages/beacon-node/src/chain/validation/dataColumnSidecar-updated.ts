@@ -181,7 +181,7 @@ export async function validateGossipDataColumnSidecar(
  * https://github.com/ethereum/consensus-specs/blob/dev/specs/fulu/p2p-interface.md#verify_data_column_sidecar
  */
 export function verifyDataColumnSidecar(columnIndex: number, dataColumnSidecar: fulu.DataColumnSidecar): void {
-  if (dataColumnSidecar.index > NUMBER_OF_COLUMNS) {
+  if (dataColumnSidecar.index >= NUMBER_OF_COLUMNS) {
     throw new DataColumnSidecarGossipError(GossipAction.REJECT, {
       code: DataColumnSidecarErrorCode.INVALID_INDEX,
       columnIndex: dataColumnSidecar.index,
