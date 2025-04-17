@@ -77,7 +77,7 @@ export async function validateGossipDataColumnSidecar(
   }
 
   // 6) [IGNORE] The sidecar's block's parent (defined by block_header.parent_root) has been seen (via gossip
-  //          or non-gossip sources)
+  //             or non-gossip sources)
   const parentRoot = toRootHex(blockHeader.parentRoot);
   const parentBlock = chain.forkChoice.getBlockHex(parentRoot);
   if (parentBlock === null) {
@@ -130,12 +130,13 @@ export async function validateGossipDataColumnSidecar(
   }
 
   // 9) [REJECT] The current finalized_checkpoint is an ancestor of the sidecar's block
-  //          -- i.e. get_checkpoint_block(store, block_header.parent_root, store.finalized_checkpoint.epoch)
-  //                  == store.finalized_checkpoint.root
+  //             -- i.e. get_checkpoint_block(store, block_header.parent_root, store.finalized_checkpoint.epoch)
+  //                     == store.finalized_checkpoint.root
   // Handled by 7)
 
   // 10) [REJECT] The sidecar's kzg_commitments field inclusion proof is valid as verified by
-  //          verify_data_column_sidecar_inclusion_proof
+  //              verify_data_column_sidecar_inclusion_proof
+  //              TODO: Can cache (commitments, proof, header) in the future
   if (!verifyDataColumnSidecarInclusionProof(dataColumnSidecar)) {
     throw new DataColumnSidecarGossipError(GossipAction.REJECT, {
       code: DataColumnSidecarErrorCode.INCLUSION_PROOF_INVALID,
@@ -144,7 +145,7 @@ export async function validateGossipDataColumnSidecar(
     });
   }
 
-  // [REJECT] The sidecar's column data is valid as verified by verify_data_column_sidecar_kzg_proofs
+  // 11) [REJECT] The sidecar's column data is valid as verified by verify_data_column_sidecar_kzg_proofs
   try {
     verifyDataColumnSidecarKzgProofs(
       dataColumnSidecar.kzgCommitments,
