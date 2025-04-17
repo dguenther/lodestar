@@ -605,10 +605,11 @@ export class PeerDiscovery {
 
     // Must add the multiaddrs array to the address book before dialing
     // https://github.com/libp2p/js-libp2p/blob/aec8e3d3bb1b245051b60c2a890550d262d5b062/src/index.js#L638
-    await this.libp2p.peerStore.merge(peerId, {multiaddrs: [multiaddrTCP]});
+    const peer = await this.libp2p.peerStore.merge(peerId, {multiaddrs: [multiaddrTCP]});
 
     // Note: PeerDiscovery adds the multiaddrTCP beforehand
     const peerIdShort = prettyPrintPeerId(peerId);
+    this.logger.debug("@@@ updated multiaddr to peer store", {peerId: peerIdShort, returnedAddrs: peer.addresses.length});
     this.logger.debug("Dialing discovered peer", {peer: peerIdShort});
 
     this.metrics?.discovery.dialAttempts.inc();
