@@ -96,6 +96,9 @@ export async function validateGossipDataColumnSidecar(
     });
   }
 
+  // getBlockSlotState also checks for whether the current finalized checkpoint is an ancestor of the block.
+  // As a result, we throw an IGNORE (whereas the spec says we should REJECT for this scenario).
+  // this is something we should change this in the future to make the code airtight to the spec.
   // 7) [REJECT] The sidecar's block's parent passes validation.
   const blockState = await chain.regen
     .getBlockSlotState(parentRoot, blockHeader.slot, {dontTransferCache: true}, RegenCaller.validateGossipBlock)
