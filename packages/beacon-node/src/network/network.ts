@@ -56,6 +56,7 @@ import {
 import {collectSequentialBlocksInRange} from "./reqresp/utils/collectSequentialBlocksInRange.js";
 import {CommitteeSubscription, NodeId} from "./subnets/index.js";
 import {isPublishToZeroPeersError} from "./util.js";
+import {computeSubnetForDataColumnSidecar} from "../chain/validation/dataColumnSidecar.js";
 
 type NetworkModules = {
   opts: NetworkOptions;
@@ -362,9 +363,9 @@ export class Network implements INetwork {
   async publishDataColumnSidecar(dataColumnSidecar: fulu.DataColumnSidecar): Promise<number> {
     const slot = dataColumnSidecar.signedBlockHeader.message.slot;
     const fork = this.config.getForkName(slot);
-    const index = dataColumnSidecar.index % DATA_COLUMN_SIDECAR_SUBNET_COUNT;
+    const subnet = computeSubnetForDataColumnSidecar(dataColumnSidecar);
     return this.publishGossip<GossipType.data_column_sidecar>(
-      {type: GossipType.data_column_sidecar, fork, index},
+      {type: GossipType.data_column_sidecar, fork, subnet},
       dataColumnSidecar,
       {
         ignoreDuplicatePublishError: true,
