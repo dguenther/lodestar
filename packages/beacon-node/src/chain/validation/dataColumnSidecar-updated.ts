@@ -89,7 +89,7 @@ export async function validateGossipDataColumnSidecar(
 
   // 8) [REJECT] The sidecar is from a higher slot than the sidecar's block's parent
   if (parentBlock.slot >= blockHeader.slot) {
-    throw new DataColumnSidecarGossipError(GossipAction.IGNORE, {
+    throw new DataColumnSidecarGossipError(GossipAction.REJECT, {
       code: DataColumnSidecarErrorCode.NOT_LATER_THAN_PARENT,
       parentSlot: parentBlock.slot,
       slot: blockHeader.slot,
