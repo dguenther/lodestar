@@ -185,7 +185,7 @@ export class BeaconNode {
         config,
         anchorState,
         logger.child({module: LoggerModule.vmon}),
-        metricsRegistries,
+        metricsRegistries
       );
       initBeaconMetrics(metrics, anchorState);
       // Since the db is instantiated before this, metrics must be injected manually afterwards

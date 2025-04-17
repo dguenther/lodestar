@@ -7,12 +7,12 @@ import {
 import {Root, Slot, deneb, fulu, ssz} from "@lodestar/types";
 import {toHex, verifyMerkleBranch} from "@lodestar/utils";
 
+import {Metrics} from "../../metrics/metrics.js";
 import {byteArrayEquals} from "../../util/bytes.js";
 import {ckzg} from "../../util/kzg.js";
 import {DataColumnSidecarErrorCode, DataColumnSidecarGossipError} from "../errors/dataColumnSidecarError.js";
 import {GossipAction} from "../errors/gossipValidation.js";
 import {IBeaconChain} from "../interface.js";
-import {Metrics} from "../../metrics/metrics.js";
 
 export async function validateGossipDataColumnSidecar(
   chain: IBeaconChain,

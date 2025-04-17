@@ -1,6 +1,6 @@
 import type {ChainForkConfig} from "@lodestar/config";
 import type {DataAvailabilityStatus, MaybeValidExecutionStatus} from "@lodestar/fork-choice";
-import {type ForkPostDeneb, ForkSeq, ForkPreFulu, ForkPostFulu} from "@lodestar/params";
+import {type ForkPostDeneb, ForkPostFulu, ForkPreFulu, ForkSeq} from "@lodestar/params";
 import {type CachedBeaconStateAllForks, computeEpochAtSlot} from "@lodestar/state-transition";
 import type {ColumnIndex, RootHex, SignedBeaconBlock, Slot, deneb, fulu} from "@lodestar/types";
 

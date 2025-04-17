@@ -260,12 +260,8 @@ export function matchBlockWithDataColumns(
       throw Error(`Invalid block forkSeq=${forkSeq} < ForSeq.fulu for matchBlockWithDataColumns`);
     }
     const dataColumnSidecars: fulu.DataColumnSidecar[] = [];
-    let dataColumnSidecar: fulu.DataColumnSidecar;
-    while (
-      (dataColumnSidecar = allDataColumnSidecars[dataColumnSideCarIndex])?.signedBlockHeader.message.slot ===
-      block.data.message.slot
-    ) {
-      dataColumnSidecars.push(dataColumnSidecar);
+    while (allDataColumnSidecars[dataColumnSideCarIndex]?.signedBlockHeader.message.slot === block.data.message.slot) {
+      dataColumnSidecars.push(allDataColumnSidecars[dataColumnSideCarIndex]);
       lastMatchedSlot = block.data.message.slot;
       dataColumnSideCarIndex++;
     }

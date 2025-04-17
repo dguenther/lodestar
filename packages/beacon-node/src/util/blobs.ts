@@ -3,8 +3,8 @@ import {Tree} from "@chainsafe/persistent-merkle-tree";
 import {ChainForkConfig} from "@lodestar/config";
 import {
   ForkAll,
-  ForkPostDeneb,
   ForkName,
+  ForkPostDeneb,
   KZG_COMMITMENTS_GINDEX,
   KZG_COMMITMENT_GINDEX0,
   NUMBER_OF_COLUMNS,

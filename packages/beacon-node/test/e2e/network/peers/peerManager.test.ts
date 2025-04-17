@@ -7,11 +7,12 @@ import {altair, phase0, ssz} from "@lodestar/types";
 import {sleep} from "@lodestar/utils";
 import {afterEach, describe, expect, it, vi} from "vitest";
 import {Eth2Gossipsub, NetworkEvent, NetworkEventBus, getConnectionsMap} from "../../../../src/network/index.js";
+import {NetworkConfig} from "../../../../src/network/networkConfig.js";
 import {IReqRespBeaconNodePeerManager, PeerManager, PeerRpcScoreStore} from "../../../../src/network/peers/index.js";
 import {PeersData} from "../../../../src/network/peers/peersData.js";
 import {ReqRespMethod} from "../../../../src/network/reqresp/ReqRespBeaconNode.js";
 import {LocalStatusCache} from "../../../../src/network/statusCache.js";
-import {IAttnetsService, computeNodeId} from "../../../../src/network/subnets/index.js";
+import {IAttnetsService} from "../../../../src/network/subnets/index.js";
 import {Clock} from "../../../../src/util/clock.js";
 import {waitForEvent} from "../../../utils/events/resolver.js";
 import {testLogger} from "../../../utils/logger.js";
@@ -43,6 +44,7 @@ describe("network / peers / PeerManager", () => {
       },
     });
     const beaconConfig = createBeaconConfig(config, state.genesisValidatorsRoot);
+    const networkConfig = new NetworkConfig(peerId1, beaconConfig);
     const controller = new AbortController();
     const clock = new Clock({config: beaconConfig, genesisTime: 0, signal: controller.signal});
     const status = ssz.phase0.Status.defaultValue();
@@ -74,17 +76,17 @@ describe("network / peers / PeerManager", () => {
         metrics: null,
         clock,
         statusCache,
-        config: beaconConfig,
+        networkConfig,
         peerRpcScores,
         events: networkEventBus,
         attnetsService: mockSubnetsService,
         syncnetsService: mockSubnetsService,
         gossip: {getScore: () => 0, scoreParams: {decayInterval: 1000}} as unknown as Eth2Gossipsub,
         peersData: new PeersData(),
-        nodeId: computeNodeId(peerId1),
       },
       {
         targetPeers: 30,
+        targetGroupPeers: 6,
         maxPeers: 50,
         discv5: null,
         discv5FirstQueryDelayMs: 0,

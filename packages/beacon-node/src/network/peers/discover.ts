@@ -8,19 +8,19 @@ import {CustodyIndex, SubnetID} from "@lodestar/types";
 import {pruneSetToMax, sleep} from "@lodestar/utils";
 import {bytesToInt} from "@lodestar/utils";
 import {Multiaddr} from "@multiformats/multiaddr";
+import {IClock} from "../../util/clock.js";
 import {getCustodyGroups, getDataColumns} from "../../util/dataColumns.js";
 import {NetworkCoreMetrics} from "../core/metrics.js";
 import {Discv5Worker} from "../discv5/index.js";
 import {LodestarDiscv5Opts} from "../discv5/types.js";
 import {Libp2p} from "../interface.js";
 import {ENRKey, SubnetType} from "../metadata.js";
+import {NetworkConfig} from "../networkConfig.js";
 import {NodeId, computeNodeId} from "../subnets/interface.js";
 import {getConnectionsMap, prettyPrintPeerId} from "../util.js";
 import {IPeerRpcScoreStore, ScoreState} from "./score/index.js";
 import {deserializeEnrSubnets, zeroAttnets, zeroSyncnets} from "./utils/enrSubnetsDeserialize.js";
 import {type GroupQueries} from "./utils/prioritizePeers.js";
-import {IClock} from "../../util/clock.js";
-import {NetworkConfig} from "../networkConfig.js";
 
 /** Max number of cached ENRs after discovering a good peer */
 const MAX_CACHED_ENRS = 100;
@@ -253,7 +253,7 @@ export class PeerDiscovery {
       group: for (const [group, maxPeersToConnect] of groupRequests) {
         let cachedENRsInGroup = 0;
         for (const cachedENR of cachedENRsReverse) {
-          if (cachedENR.peerCustodyGroups && cachedENR.peerCustodyGroups.includes(group)) {
+          if (cachedENR.peerCustodyGroups?.includes(group)) {
             cachedENRsToDial.set(cachedENR.peerId.toString(), cachedENR);
 
             if (++cachedENRsInGroup >= maxPeersToConnect) {
