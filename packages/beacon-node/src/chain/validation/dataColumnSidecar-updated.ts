@@ -161,14 +161,24 @@ export async function validateGossipDataColumnSidecar(
     });
   }
 
-  // [IGNORE] The sidecar is the first sidecar for the tuple (block_header.slot, block_header.proposer_index,
-  //          sidecar.index) with valid header signature, sidecar inclusion proof, and kzg proof
+  // 12) [IGNORE] The sidecar is the first sidecar for the tuple (block_header.slot, block_header.proposer_index,
+  //              sidecar.index) with valid header signature, sidecar inclusion proof, and kzg proof
 
-  // [REJECT] The sidecar is proposed by the expected proposer_index for the block's slot in the context of the current
-  //          shuffling (defined by block_header.parent_root/block_header.slot). If the proposer_index cannot
-  //          immediately be verified against the expected shuffling, the sidecar MAY be queued for later processing
-  //          while proposers for the block's branch are calculated -- in such a case do not REJECT, instead IGNORE
-  //          this message.
+  // 13) [REJECT] The sidecar is proposed by the expected proposer_index for the block's slot in the context of the current
+  //              shuffling (defined by block_header.parent_root/block_header.slot). If the proposer_index cannot
+  //              immediately be verified against the expected shuffling, the sidecar MAY be queued for later processing
+  //              while proposers for the block's branch are calculated -- in such a case do not REJECT, instead IGNORE
+  //              this message.
+  const proposerIndex = blockHeader.proposerIndex;
+  const expectedProposerIndex = blockState.epochCtx.getBeaconProposer(blockHeader.slot);
+
+  if (proposerIndex !== expectedProposerIndex) {
+    throw new DataColumnSidecarGossipError(GossipAction.REJECT, {
+      code: DataColumnSidecarErrorCode.INCORRECT_PROPOSER,
+      actualProposerIndex: proposerIndex,
+      expectedProposerIndex,
+    });
+  }
 }
 
 /**

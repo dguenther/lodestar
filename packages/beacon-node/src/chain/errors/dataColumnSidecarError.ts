@@ -8,12 +8,14 @@ export enum DataColumnSidecarErrorCode {
   FUTURE_SLOT = "DATA_COLUMN_SIDECAR_ERROR_FUTURE_SLOT",
   PARENT_UNKNOWN = "DATA_COLUMN_SIDECAR_ERROR_PARENT_UNKNOWN",
   INCLUSION_PROOF_INVALID = "BLOB_SIDECAR_ERROR_INCLUSION_PROOF_INVALID",
+  INCORRECT_PROPOSER = "DATA_COLUMN_SIDECAR_ERROR_INCORRECT_PROPOSER",
 }
 
 export type DataColumnSidecarErrorType =
   | {code: DataColumnSidecarErrorCode.INVALID_SUBNET; columnIndex: number; gossipSubnet: SubnetID}
   | {code: DataColumnSidecarErrorCode.FUTURE_SLOT; blockSlot: Slot; currentSlot: Slot}
   | {code: DataColumnSidecarErrorCode.PARENT_UNKNOWN; parentRoot: RootHex}
-  | {code: DataColumnSidecarErrorCode.INCLUSION_PROOF_INVALID; slot: Slot; columnIdx: number};
+  | {code: DataColumnSidecarErrorCode.INCLUSION_PROOF_INVALID; slot: Slot; columnIdx: number}
+  | {code: DataColumnSidecarErrorCode.INCORRECT_PROPOSER; actualProposerIndex: number; expectedProposerIndex: number};
 
 export class DataColumnSidecarGossipError extends GossipActionError<DataColumnSidecarErrorType> {}
