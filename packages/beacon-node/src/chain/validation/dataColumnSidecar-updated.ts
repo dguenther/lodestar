@@ -5,7 +5,7 @@ import {
   NUMBER_OF_COLUMNS,
 } from "@lodestar/params";
 import {ColumnIndex, Root, RootHex, Slot, SubnetID, deneb, fulu, ssz} from "@lodestar/types";
-import {toHex, verifyMerkleBranch} from "@lodestar/utils";
+import {toHex, toRootHex, verifyMerkleBranch} from "@lodestar/utils";
 
 import {byteArrayEquals} from "../../util/bytes.js";
 import {ckzg} from "../../util/kzg.js";
@@ -14,7 +14,6 @@ import {GossipAction} from "../errors/gossipValidation.js";
 import {IBeaconChain} from "../interface.js";
 import {computeStartSlotAtEpoch, getBlockHeaderProposerSignatureSet} from "@lodestar/state-transition";
 import {RegenCaller} from "../regen/interface.js";
-import {BlockInput} from "../blocks/utils/blockInput.js";
 import {KZGCommitment} from "c-kzg";
 
 // 1) [REJECT] The sidecar is valid as verified by verify_data_column_sidecar(sidecar).
@@ -36,7 +35,6 @@ import {KZGCommitment} from "c-kzg";
 // https://github.com/ethereum/consensus-specs/blob/dev/specs/fulu/p2p-interface.md#data_column_sidecar_subnet_id
 export async function validateGossipDataColumnSidecar(
   chain: IBeaconChain,
-  blockInput: BlockInput,
   dataColumnSidecar: fulu.DataColumnSidecar,
   gossipSubnet: SubnetID
 ): Promise<void> {
@@ -80,7 +78,7 @@ export async function validateGossipDataColumnSidecar(
 
   // 6) [IGNORE] The sidecar's block's parent (defined by block_header.parent_root) has been seen (via gossip
   //          or non-gossip sources)
-  const parentRoot = blockInput.getParentRootHex();
+  const parentRoot = toRootHex(blockHeader.parentRoot);
   const parentBlock = chain.forkChoice.getBlockHex(parentRoot);
   if (parentBlock === null) {
     throw new DataColumnSidecarGossipError(GossipAction.IGNORE, {
@@ -161,7 +159,7 @@ export async function validateGossipDataColumnSidecar(
     throw new DataColumnSidecarGossipError(GossipAction.REJECT, {
       code: DataColumnSidecarErrorCode.KZG_PROOF_INVALID,
       slot: blockHeader.slot,
-      blockRoot: blockInput.rootHex,
+      blockRoot: toRootHex(ssz.phase0.BeaconBlockHeader.hashTreeRoot(blockHeader)),
       columnIndex: dataColumnSidecar.index,
     });
   }
