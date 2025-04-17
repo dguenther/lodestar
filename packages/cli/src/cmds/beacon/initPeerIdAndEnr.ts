@@ -4,13 +4,13 @@ import path from "node:path";
 import {SignableENR} from "@chainsafe/enr";
 import {generateKeyPair} from "@libp2p/crypto/keys";
 import type {PrivateKey} from "@libp2p/interface";
+import {ChainForkConfig} from "@lodestar/config";
 import {Logger, intToBytes} from "@lodestar/utils";
 import {Multiaddr} from "@multiformats/multiaddr";
 import {exportToJSON, readPrivateKey} from "../../config/index.js";
 import {parseListenArgs} from "../../options/beaconNodeOptions/network.js";
 import {writeFile600Perm} from "../../util/file.js";
 import {BeaconArgs} from "./options.js";
-import {ChainForkConfig} from "@lodestar/config";
 
 /**
  * Check if multiaddr belongs to the local network interfaces.
@@ -68,7 +68,6 @@ function maybeUpdateEnr<T extends "ip" | "tcp" | "udp" | "ip6" | "tcp6" | "udp6"
 }
 
 export function overwriteEnrWithCliArgs(
-  config: ChainForkConfig,
   enr: SignableENR,
   args: BeaconArgs,
   logger: Logger,
@@ -85,10 +84,6 @@ export function overwriteEnrWithCliArgs(
     maybeUpdateEnr(enr, "tcp", args["enr.tcp"] ?? port ?? enr.tcp);
     maybeUpdateEnr(enr, "tcp6", args["enr.tcp6"] ?? port6 ?? enr.tcp6);
   }
-
-  // cgc is big ending but since 1 bytes suffices for now so its the same
-  const cgc = Math.max(config.CUSTODY_REQUIREMENT, config.NODE_CUSTODY_REQUIREMENT);
-  enr.set("cgc", intToBytes(cgc, Math.ceil(Math.log2(cgc + 1) / 8), "be"));
 
   function testMultiaddrForLocal(mu: Multiaddr, ip4: boolean): void {
     const isLocal = isLocalMultiAddr(mu);
@@ -186,19 +181,18 @@ export async function initPrivateKeyAndEnr(
     return {privateKey, enr, newEnr: false};
   };
 
-  console.log({persistNetworkIdentity});
-
   if (persistNetworkIdentity) {
     const enrFile = path.join(beaconDir, "enr");
     const peerIdFile = path.join(beaconDir, "peer-id.json");
     const {privateKey, enr, newEnr} = await readPersistedPrivateKeyAndENR(peerIdFile, enrFile);
-    overwriteEnrWithCliArgs(config, enr, args, logger, {newEnr, bootnode});
+    overwriteEnrWithCliArgs(enr, args, logger, {newEnr, bootnode});
     // Re-persist peer-id and enr
     writeFile600Perm(peerIdFile, exportToJSON(privateKey));
     writeFile600Perm(enrFile, enr.encodeTxt());
     return {privateKey, enr};
   }
+
   const {privateKey, enr} = await newPrivateKeyAndENR();
-  overwriteEnrWithCliArgs(config, enr, args, logger, {newEnr: true, bootnode});
+  overwriteEnrWithCliArgs(enr, args, logger, {newEnr: true, bootnode});
   return {privateKey, enr};
 }

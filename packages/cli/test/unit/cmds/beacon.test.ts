@@ -15,8 +15,6 @@ import {createFromJSON, exportToJSON} from "../../../src/config/peerId.js";
 import {GlobalArgs} from "../../../src/options/globalOptions.js";
 import {testFilesDir, testLogger} from "../../utils.js";
 
-const chainForkConfig = createChainForkConfig(chainConfig);
-
 describe("cmds / beacon / args handler", () => {
   // Make tests faster skipping a network call
   process.env.SKIP_FETCH_NETWORK_BOOTNODES = "true";

@@ -4,7 +4,7 @@ import {StrictEventEmitter} from "strict-event-emitter-types";
 import {routes} from "@lodestar/api";
 import {CheckpointWithHex} from "@lodestar/fork-choice";
 import {CachedBeaconStateAllForks} from "@lodestar/state-transition";
-import {phase0, fulu} from "@lodestar/types";
+import {fulu, phase0} from "@lodestar/types";
 
 /**
  * Important chain events that occur during normal chain operation.

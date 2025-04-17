@@ -7,8 +7,8 @@ import {BlobsSource, BlockSource, getBlockInput} from "../../../src/chain/blocks
 import {ZERO_HASH} from "../../../src/constants/constants.js";
 import {INetwork} from "../../../src/network/interface.js";
 import {beaconBlocksMaybeBlobsByRange} from "../../../src/network/reqresp/index.js";
-import {initCKZG, loadEthereumTrustedSetup} from "../../../src/util/kzg.js";
 import {CustodyConfig} from "../../../src/util/dataColumns.js";
+import {initCKZG, loadEthereumTrustedSetup} from "../../../src/util/kzg.js";
 
 describe.skip("beaconBlocksMaybeBlobsByRange", () => {
   beforeAll(async () => {

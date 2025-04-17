@@ -1,11 +1,11 @@
 import {fromHexString} from "@chainsafe/ssz";
 import {createBeaconConfig, createChainForkConfig, defaultChainConfig} from "@lodestar/config";
-import {NUMBER_OF_COLUMNS, NUMBER_OF_CUSTODY_GROUPS} from "@lodestar/params";
-import {ssz} from "@lodestar/types";
-import {bigIntToBytes} from "@lodestar/utils";
-import {CachedBeaconStateAllForks} from "@lodestar/state-transition";
 import {ChainForkConfig} from "@lodestar/config";
+import {NUMBER_OF_COLUMNS, NUMBER_OF_CUSTODY_GROUPS} from "@lodestar/params";
+import {CachedBeaconStateAllForks} from "@lodestar/state-transition";
+import {ssz} from "@lodestar/types";
 import {ValidatorIndex} from "@lodestar/types";
+import {bigIntToBytes} from "@lodestar/utils";
 /* eslint-disable @typescript-eslint/naming-convention */
 import {afterEach, beforeAll, beforeEach, describe, expect, it} from "vitest";
 
@@ -74,18 +74,10 @@ describe("getValidatorsCustodyRequirement", () => {
 });
 
 describe("CustodyConfig", () => {
-  let state: CachedBeaconStateAllForks;
   let config: ChainForkConfig;
   const nodeId = fromHexString("cdbee32dc3c50e9711d22be5565c7e44ff6108af663b2dc5abd2df573d2fa83f");
 
   beforeEach(() => {
-    // Create a mock state with validators effective balance increments
-    state = {
-      epochCtx: {
-        effectiveBalanceIncrements: new Uint8Array(NUMBER_OF_CUSTODY_GROUPS + 1).fill(32), // Each validator has 32 ETH (1 increment)
-      },
-    } as unknown as CachedBeaconStateAllForks;
-
     // Create a proper config using createChainForkConfig
     config = createChainForkConfig({
       ...defaultChainConfig,
