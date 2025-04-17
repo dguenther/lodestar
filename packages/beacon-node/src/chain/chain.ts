@@ -1,7 +1,7 @@
 import path from "node:path";
-import {PrivateKey} from "@libp2p/interface";
 import {PubkeyIndexMap} from "@chainsafe/pubkey-index-map";
 import {CompositeTypeAny, TreeView, Type} from "@chainsafe/ssz";
+import {PrivateKey} from "@libp2p/interface";
 import {BeaconConfig} from "@lodestar/config";
 import {CheckpointWithHex, ExecutionStatus, IForkChoice, ProtoBlock, UpdateHeadOpt} from "@lodestar/fork-choice";
 import {ForkSeq, GENESIS_SLOT, SLOTS_PER_EPOCH, isForkPostElectra} from "@lodestar/params";
@@ -51,7 +51,7 @@ import {Metrics} from "../metrics/index.js";
 import {computeNodeIdFromPrivateKey} from "../network/subnets/interface.js";
 import {BufferPool} from "../util/bufferPool.js";
 import {Clock, ClockEvent, IClock} from "../util/clock.js";
-import {CustodyConfig, computeCustodyConfig} from "../util/dataColumns.js";
+import {CustodyConfig, getValidatorsCustodyRequirement} from "../util/dataColumns.js";
 import {ensureDir, writeIfNotExist} from "../util/file.js";
 import {isOptimisticBlock} from "../util/forkChoice.js";
 import {SerializedCache} from "../util/serializedCache.js";
@@ -124,8 +124,6 @@ export class BeaconChain implements IBeaconChain {
   readonly executionBuilder?: IExecutionBuilder;
   // Expose config for convenience in modularized functions
   readonly config: BeaconConfig;
-  // TODO - das: mutate custodyConfig due to VALIDATOR_CUSTODY_REQURIEMENT
-  // need to sync with networkConfig inside Network too
   readonly custodyConfig: CustodyConfig;
   readonly logger: Logger;
   readonly metrics: Metrics | null;
@@ -265,8 +263,8 @@ export class BeaconChain implements IBeaconChain {
     this.seenContributionAndProof = new SeenContributionAndProof(metrics);
     this.seenAttestationDatas = new SeenAttestationDatas(metrics, this.opts?.attDataCacheSlotDistance);
     const nodeId = computeNodeIdFromPrivateKey(privateKey);
-    this.custodyConfig = computeCustodyConfig(nodeId, config);
-    this.seenGossipBlockInput = new SeenGossipBlockInput(this.custodyConfig);
+    this.custodyConfig = new CustodyConfig(nodeId, config);
+    this.seenGossipBlockInput = new SeenGossipBlockInput(this.custodyConfig, this.executionEngine, emitter);
 
     this.beaconProposerCache = new BeaconProposerCache(opts);
     this.checkpointBalancesCache = new CheckpointBalancesCache();
@@ -1204,6 +1202,19 @@ export class BeaconChain implements IBeaconChain {
 
     if (headState) {
       this.opPool.pruneAll(headBlock, headState);
+
+      if (!this.opts.noValidatorCustody) {
+        // Update custody requirement based on finalized state
+        const validatorIndices = this.beaconProposerCache.getValidatorIndices();
+        const targetCustodyGroupCount = getValidatorsCustodyRequirement(headState, validatorIndices, this.config);
+        this.custodyConfig.updateTargetCustodyGroupCount(targetCustodyGroupCount);
+        this.emitter.emit(ChainEvent.updateTargetGroupCount, this.custodyConfig.targetCustodyGroupCount);
+
+        // TODO: If target group count increases, we should wait to update the advertised group until we've
+        // backfilled the new groups.
+        this.custodyConfig.updateAdvertisedCustodyGroupCount(targetCustodyGroupCount);
+        this.emitter.emit(ChainEvent.updateAdvertisedGroupCount, this.custodyConfig.advertisedCustodyGroupCount);
+      }
     }
 
     if (headState === null) {

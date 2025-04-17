@@ -53,8 +53,8 @@ export async function beaconBlocksMaybeBlobsByRoot(
   const blobsDataBlocks = [];
   const dataColumnsDataBlocks = [];
 
-  const {custodyConfig} = network;
-  const neededColumns = partialDownload ? partialDownload.pendingDataColumns : custodyConfig.sampledColumns;
+  const sampledColumns = network.custodyConfig.sampledColumns;
+  const neededColumns = partialDownload ? partialDownload.pendingDataColumns : sampledColumns;
   const peerColumns = network.getConnectedPeerCustody(peerId);
 
   // get match
@@ -158,7 +158,7 @@ export async function beaconBlocksMaybeBlobsByRoot(
       network,
       peerId,
       config,
-      custodyConfig,
+      sampledColumns,
       columns,
       allBlocks,
       allDataColumnsSidecars,
@@ -438,7 +438,6 @@ export async function unavailableBeaconBlobsByRootPreFulu(
   return getBlockInput.availableData(config, block, BlockSource.byRoot, blockData);
 }
 
-
 /**
  * Download more columns for a BlockInput
  * - unavailableBlockInput should have block, but not enough blobs (deneb) or data columns (fulu)
@@ -524,8 +523,8 @@ export async function unavailableBeaconBlobsByRootPostFulu(
     opts.metrics?.syncUnknownBlock.resolveAvailabilitySource.inc({source: BlockInputAvailabilitySource.UNKNOWN_SYNC});
     return getBlockInput.availableData(config, block, BlockSource.byRoot, blockData);
   } else {
-    const {custodyConfig} = network;
-    let neededColumns = custodyConfig.sampledColumns.reduce((acc, elem) => {
+    const sampledColumns = network.custodyConfig.sampledColumns;
+    let neededColumns = sampledColumns.reduce((acc, elem) => {
       if (dataColumnsCache.get(elem) === undefined) {
         acc.push(elem);
       }
@@ -576,7 +575,7 @@ export async function unavailableBeaconBlobsByRootPostFulu(
     }
 
     // reevaluate needeColumns and resolve availability if possible
-    neededColumns = custodyConfig.sampledColumns.reduce((acc, elem) => {
+    neededColumns = sampledColumns.reduce((acc, elem) => {
       if (dataColumnsCache.get(elem) === undefined) {
         acc.push(elem);
       }
@@ -586,7 +585,7 @@ export async function unavailableBeaconBlobsByRootPostFulu(
     if (neededColumns.length === 0) {
       const {dataColumns, dataColumnsBytes} = getBlockInputDataColumns(
         (cachedData as CachedDataColumns).dataColumnsCache,
-        custodyConfig.sampledColumns
+        sampledColumns
       );
 
       // don't forget to resolve availability as the block may be stuck in availability wait
@@ -597,7 +596,10 @@ export async function unavailableBeaconBlobsByRootPostFulu(
         dataColumnsSource: DataColumnsSource.byRoot,
       } as BlockInputDataColumns;
       resolveAvailability(blockData);
-      opts.logger?.verbose("unavailableBeaconBlobsByRootPostFulu: Resolved availability for block with all data columns", logCtx);
+      opts.logger?.verbose(
+        "unavailableBeaconBlobsByRootPostFulu: Resolved availability for block with all data columns",
+        logCtx
+      );
       return getBlockInput.availableData(config, block, BlockSource.byRoot, blockData);
     } else {
       opts.logger?.verbose("unavailableBeaconBlobsByRootPostFulu: Still missing data columns for block", logCtx);

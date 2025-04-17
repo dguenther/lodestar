@@ -20,6 +20,7 @@ import {
   BlobSidecarValidation,
   BlockInput,
   BlockInputAvailableData,
+  BlockInputBlobs,
   BlockInputType,
   GossipedInputType,
   NullBlockInput,
@@ -270,6 +271,9 @@ function getSequentialHandlers(modules: ValidatorFnsModules, options: GossipHand
     peerIdStr: string,
     seenTimestampSec: number
   ): Promise<BlockInput | NullBlockInput> {
+    metrics?.peerDas.dataColumnSidecarProcessingRequests.inc();
+    const verificationTimer = metrics?.peerDas.dataColumnSidecarGossipVerificationTime.startTimer();
+
     const dataColumnBlockHeader = dataColumnSidecar.signedBlockHeader.message;
     const slot = dataColumnBlockHeader.slot;
     const blockRoot = ssz.phase0.BeaconBlockHeader.hashTreeRoot(dataColumnBlockHeader);
@@ -293,6 +297,7 @@ function getSequentialHandlers(modules: ValidatorFnsModules, options: GossipHand
       const recvToValidation = Date.now() / 1000 - seenTimestampSec;
       const validationTime = recvToValidation - recvToValLatency;
 
+      metrics?.peerDas.dataColumnSidecarProcessingSuccesses.inc();
       metrics?.gossipBlob.recvToValidation.observe(recvToValidation);
       metrics?.gossipBlob.validationTime.observe(validationTime);
 
@@ -329,6 +334,8 @@ function getSequentialHandlers(modules: ValidatorFnsModules, options: GossipHand
       }
 
       throw e;
+    } finally {
+      verificationTimer?.();
     }
   }
 
@@ -343,7 +350,9 @@ function getSequentialHandlers(modules: ValidatorFnsModules, options: GossipHand
       events.emit(NetworkEvent.unknownBlockInput, {blockInput, peer: peerIdStr});
     } else if (blockInput.type === BlockInputType.availableData) {
       metrics?.blockInputFetchStats.totalDataAvailableBlockInputs.inc();
-      metrics?.blockInputFetchStats.totalDataAvailableBlockInputBlobs.inc(blockInput.blockData.blobs.length);
+      metrics?.blockInputFetchStats.totalDataAvailableBlockInputBlobs.inc(
+        (blockInput.blockData as BlockInputBlobs).blobs.length
+      );
     }
 
     chain
