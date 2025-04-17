@@ -81,6 +81,16 @@ export async function validateGossipDataColumnSidecar(
   const parentRoot = toRootHex(blockHeader.parentRoot);
   const parentBlock = chain.forkChoice.getBlockHex(parentRoot);
   if (parentBlock === null) {
+    // If fork choice does *not* consider the parent to be a descendant of the finalized block,
+    // then there are two more cases:
+    //
+    // 1. We have the parent stored in our database. Because fork-choice has confirmed the
+    //    parent is *not* in our post-finalization DAG, all other blocks must be either
+    //    pre-finalization or conflicting with finalization.
+    // 2. The parent is unknown to us, we probably want to download it since it might actually
+    //    descend from the finalized root.
+    // (Non-Lighthouse): Since we prune all blocks non-descendant from finalized checking the `db.block` database won't be useful to guard
+    // against known bad fork blocks, so we throw PARENT_UNKNOWN for cases (1) and (2)
     throw new DataColumnSidecarGossipError(GossipAction.IGNORE, {
       code: DataColumnSidecarErrorCode.PARENT_UNKNOWN,
       parentRoot,
@@ -119,26 +129,10 @@ export async function validateGossipDataColumnSidecar(
     });
   }
 
-  // if (parentBlock === null) {
-  //   // If fork choice does *not* consider the parent to be a descendant of the finalized block,
-  //   // then there are two more cases:
-  //   //
-  //   // 1. We have the parent stored in our database. Because fork-choice has confirmed the
-  //   //    parent is *not* in our post-finalization DAG, all other blocks must be either
-  //   //    pre-finalization or conflicting with finalization.
-  //   // 2. The parent is unknown to us, we probably want to download it since it might actually
-  //   //    descend from the finalized root.
-  //   // (Non-Lighthouse): Since we prune all blocks non-descendant from finalized checking the `db.block` database won't be useful to guard
-  //   // against known bad fork blocks, so we throw PARENT_UNKNOWN for cases (1) and (2)
-  //   throw new DataColumnSidecarGossipError(GossipAction.IGNORE, {
-  //     code: DataColumnSidecarErrorCode.PARENT_UNKNOWN,
-  //     parentRoot,
-  //   });
-  // }
-
-  // [REJECT] The current finalized_checkpoint is an ancestor of the sidecar's block
+  // 9) [REJECT] The current finalized_checkpoint is an ancestor of the sidecar's block
   //          -- i.e. get_checkpoint_block(store, block_header.parent_root, store.finalized_checkpoint.epoch)
   //                  == store.finalized_checkpoint.root
+  // Handled by 7)
 
   // 10) [REJECT] The sidecar's kzg_commitments field inclusion proof is valid as verified by
   //          verify_data_column_sidecar_inclusion_proof
