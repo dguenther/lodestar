@@ -46,7 +46,7 @@ export async function validateGossipDataColumnSidecar(
   // 2) [REJECT] The sidecar is for the correct subnet -- i.e. compute_subnet_for_data_column_sidecar(sidecar.index) == subnet_id
   if (computeSubnetForDataColumnSidecar(dataColumnSidecar) !== gossipSubnet) {
     throw new DataColumnSidecarGossipError(GossipAction.REJECT, {
-      code: DataColumnSidecarErrorCode.INVALID_INDEX,
+      code: DataColumnSidecarErrorCode.INVALID_SUBNET,
       columnIndex: dataColumnSidecar.index,
       gossipSubnet: gossipSubnet,
     });
@@ -136,7 +136,7 @@ export async function validateGossipDataColumnSidecar(
 
   // 10) [REJECT] The sidecar's kzg_commitments field inclusion proof is valid as verified by
   //              verify_data_column_sidecar_inclusion_proof
-  //              TODO: Can cache (commitments, proof, header) in the future
+  //              TODO: Can cache result on (commitments, proof, header) in the future
   if (!verifyDataColumnSidecarInclusionProof(dataColumnSidecar)) {
     throw new DataColumnSidecarGossipError(GossipAction.REJECT, {
       code: DataColumnSidecarErrorCode.INCLUSION_PROOF_INVALID,
