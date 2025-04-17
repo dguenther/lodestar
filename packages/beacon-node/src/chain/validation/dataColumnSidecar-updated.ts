@@ -40,7 +40,7 @@ export async function validateGossipDataColumnSidecar(
   dataColumnSidecar: fulu.DataColumnSidecar,
   gossipSubnet: SubnetID
 ): Promise<void> {
-  const dataColumnSlot = dataColumnSidecar.signedBlockHeader.message.slot;
+  const blockHeader = dataColumnSidecar.signedBlockHeader.message;
 
   // 1) [REJECT] The sidecar is valid as verified by verify_data_column_sidecar
   verifyDataColumnSidecar(gossipSubnet, dataColumnSidecar);
@@ -58,11 +58,11 @@ export async function validateGossipDataColumnSidecar(
   //             -- i.e. validate that sidecar.slot <= current_slot (a client MAY queue future blocks
   //             for processing at the appropriate slot).
   const currentSlotWithGossipDisparity = chain.clock.currentSlotWithGossipDisparity;
-  if (currentSlotWithGossipDisparity < dataColumnSlot) {
+  if (currentSlotWithGossipDisparity < blockHeader.slot) {
     throw new DataColumnSidecarGossipError(GossipAction.IGNORE, {
       code: DataColumnSidecarErrorCode.FUTURE_SLOT,
       currentSlot: currentSlotWithGossipDisparity,
-      blockSlot: dataColumnSlot,
+      blockSlot: blockHeader.slot,
     });
   }
 
@@ -70,10 +70,10 @@ export async function validateGossipDataColumnSidecar(
   //             sidecar.slot > compute_start_slot_at_epoch(state.finalized_checkpoint.epoch)
   const finalizedCheckpoint = chain.forkChoice.getFinalizedCheckpoint();
   const finalizedSlot = computeStartSlotAtEpoch(finalizedCheckpoint.epoch);
-  if (dataColumnSlot <= finalizedSlot) {
+  if (blockHeader.slot <= finalizedSlot) {
     throw new DataColumnSidecarGossipError(GossipAction.IGNORE, {
       code: DataColumnSidecarErrorCode.WOULD_REVERT_FINALIZED_SLOT,
-      blockSlot: dataColumnSlot,
+      blockSlot: blockHeader.slot,
       finalizedSlot,
     });
   }
@@ -90,17 +90,17 @@ export async function validateGossipDataColumnSidecar(
   }
 
   // 8) [REJECT] The sidecar is from a higher slot than the sidecar's block's parent
-  if (parentBlock.slot >= dataColumnSlot) {
+  if (parentBlock.slot >= blockHeader.slot) {
     throw new DataColumnSidecarGossipError(GossipAction.IGNORE, {
       code: DataColumnSidecarErrorCode.NOT_LATER_THAN_PARENT,
       parentSlot: parentBlock.slot,
-      slot: dataColumnSlot,
+      slot: blockHeader.slot,
     });
   }
 
   // 7) [REJECT] The sidecar's block's parent passes validation.
   const blockState = await chain.regen
-    .getBlockSlotState(parentRoot, dataColumnSlot, {dontTransferCache: true}, RegenCaller.validateGossipBlock)
+    .getBlockSlotState(parentRoot, blockHeader.slot, {dontTransferCache: true}, RegenCaller.validateGossipBlock)
     .catch(() => {
       throw new DataColumnSidecarGossipError(GossipAction.IGNORE, {
         code: DataColumnSidecarErrorCode.PARENT_UNKNOWN,
@@ -160,7 +160,7 @@ export async function validateGossipDataColumnSidecar(
   } catch {
     throw new DataColumnSidecarGossipError(GossipAction.REJECT, {
       code: DataColumnSidecarErrorCode.KZG_PROOF_INVALID,
-      slot: dataColumnSlot,
+      slot: blockHeader.slot,
       blockRoot: blockInput.rootHex,
       columnIndex: dataColumnSidecar.index,
     });
