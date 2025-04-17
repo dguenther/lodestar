@@ -1,5 +1,6 @@
 import {CustodyIndex, SubnetID} from "@lodestar/types";
 import {RegistryMetricCreator} from "../../metrics/utils/registryMetricCreator.js";
+import {Libp2pError} from "../libp2p/error.js";
 import {SubnetType} from "../metadata.js";
 import {DiscoveredPeerStatus, NotDialReason} from "../peers/discover.js";
 import {PeerRequestedSubnetType} from "../peers/peerManager.js";
@@ -174,20 +175,25 @@ export function createNetworkCoreMetrics(register: RegistryMetricCreator) {
         help: "Total count of status results of PeerDiscovery.onDiscovered() function",
         labelNames: ["status"],
       }),
+      dialAttempts: register.gauge({
+        name: "lodestar_discovery_total_dial_attempts",
+        help: "Total dial attempts by peer discovery",
+      }),
       notDialReason: register.gauge<{reason: NotDialReason}>({
         name: "lodestar_discovery_not_dial_reason_total_count",
         help: "Total count of not dial reasons",
         labelNames: ["reason"],
-      }),
-      dialAttempts: register.gauge({
-        name: "lodestar_discovery_total_dial_attempts",
-        help: "Total dial attempts by peer discovery",
       }),
       dialTime: register.histogram<{status: string}>({
         name: "lodestar_discovery_dial_time_seconds",
         help: "Time to dial peers in seconds",
         labelNames: ["status"],
         buckets: [0.1, 5, 60],
+      }),
+      dialError: register.gauge<{reason: Libp2pError}>({
+        name: "lodestar_discovery_dial_error_total_count",
+        help: "Total count of dial errors",
+        labelNames: ["reason"],
       }),
     },
 

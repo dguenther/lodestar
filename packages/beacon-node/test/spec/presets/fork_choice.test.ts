@@ -119,6 +119,7 @@ const forkChoiceTest =
             processShutdownCallback: () => {},
             clock,
             metrics: null,
+            validatorMonitor: null,
             anchorState,
             eth1,
             executionEngine,
