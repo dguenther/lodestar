@@ -4,7 +4,7 @@ import {
   KZG_COMMITMENTS_SUBTREE_INDEX,
   NUMBER_OF_COLUMNS,
 } from "@lodestar/params";
-import {Root, Slot, deneb, fulu, ssz} from "@lodestar/types";
+import {Root, Slot, SubnetID, deneb, fulu, ssz} from "@lodestar/types";
 import {toHex, verifyMerkleBranch} from "@lodestar/utils";
 
 import {Metrics} from "../../metrics/metrics.js";
@@ -17,18 +17,18 @@ import {IBeaconChain} from "../interface.js";
 export async function validateGossipDataColumnSidecar(
   chain: IBeaconChain,
   dataColumnSideCar: fulu.DataColumnSidecar,
-  gossipIndex: number
+  gossipSubnet: SubnetID
 ): Promise<void> {
   const dataColumnSlot = dataColumnSideCar.signedBlockHeader.message.slot;
 
   if (
     dataColumnSideCar.index > NUMBER_OF_COLUMNS ||
-    dataColumnSideCar.index % DATA_COLUMN_SIDECAR_SUBNET_COUNT !== gossipIndex
+    dataColumnSideCar.index % DATA_COLUMN_SIDECAR_SUBNET_COUNT !== gossipSubnet
   ) {
     throw new DataColumnSidecarGossipError(GossipAction.REJECT, {
       code: DataColumnSidecarErrorCode.INVALID_INDEX,
       columnIndex: dataColumnSideCar.index,
-      gossipIndex,
+      gossipSubnet,
     });
   }
 

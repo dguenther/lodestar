@@ -38,19 +38,19 @@ export async function validateGossipDataColumnSidecar(
   chain: IBeaconChain,
   blockInput: BlockInput,
   dataColumnSidecar: fulu.DataColumnSidecar,
-  columnIndex: number
+  gossipSubnet: SubnetID
 ): Promise<void> {
   const dataColumnSlot = dataColumnSidecar.signedBlockHeader.message.slot;
 
   // 1) [REJECT] The sidecar is valid as verified by verify_data_column_sidecar
-  verifyDataColumnSidecar(columnIndex, dataColumnSidecar);
+  verifyDataColumnSidecar(gossipSubnet, dataColumnSidecar);
 
   // 2) [REJECT] The sidecar is for the correct subnet -- i.e. compute_subnet_for_data_column_sidecar(sidecar.index) == subnet_id
-  if (computeSubnetForDataColumnSidecar(dataColumnSidecar) !== columnIndex) {
+  if (computeSubnetForDataColumnSidecar(dataColumnSidecar) !== gossipSubnet) {
     throw new DataColumnSidecarGossipError(GossipAction.REJECT, {
       code: DataColumnSidecarErrorCode.INVALID_INDEX,
       columnIndex: dataColumnSidecar.index,
-      gossipIndex: columnIndex,
+      gossipSubnet: gossipSubnet,
     });
   }
 
@@ -180,12 +180,12 @@ export async function validateGossipDataColumnSidecar(
  * SPEC FUNCTION
  * https://github.com/ethereum/consensus-specs/blob/dev/specs/fulu/p2p-interface.md#verify_data_column_sidecar
  */
-export function verifyDataColumnSidecar(columnIndex: number, dataColumnSidecar: fulu.DataColumnSidecar): void {
+export function verifyDataColumnSidecar(gossipSubnet: SubnetID, dataColumnSidecar: fulu.DataColumnSidecar): void {
   if (dataColumnSidecar.index >= NUMBER_OF_COLUMNS) {
     throw new DataColumnSidecarGossipError(GossipAction.REJECT, {
       code: DataColumnSidecarErrorCode.INVALID_INDEX,
       columnIndex: dataColumnSidecar.index,
-      gossipIndex: columnIndex,
+      gossipSubnet,
     });
   }
 
@@ -193,7 +193,7 @@ export function verifyDataColumnSidecar(columnIndex: number, dataColumnSidecar: 
     throw new DataColumnSidecarGossipError(GossipAction.REJECT, {
       code: DataColumnSidecarErrorCode.NO_COMMITMENTS,
       columnIndex: dataColumnSidecar.index,
-      gossipIndex: columnIndex,
+      gossipSubnet,
     });
   }
 
