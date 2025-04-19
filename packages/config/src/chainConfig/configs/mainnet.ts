@@ -128,5 +128,26 @@ export const chainConfig: ChainConfig = {
   NODE_CUSTODY_REQUIREMENT: 1,
   VALIDATOR_CUSTODY_REQUIREMENT: 8,
   BALANCE_PER_ADDITIONAL_CUSTODY_GROUP: 32000000000,
-  MAX_BLOBS_PER_BLOCK_FULU: 12,
+  BLOB_SCHEDULE: [
+    {
+      EPOCH: 269568, // Deneb
+      MAX_BLOBS_PER_BLOCK: 6,
+    },
+    {
+      EPOCH: 364032, // Electra
+      MAX_BLOBS_PER_BLOCK: 9,
+    },
+    {
+      EPOCH: Number.MAX_SAFE_INTEGER, // BP01
+      MAX_BLOBS_PER_BLOCK: 18,
+    },
+    {
+      EPOCH: Number.MAX_SAFE_INTEGER, // BP02
+      MAX_BLOBS_PER_BLOCK: 36,
+    },
+    {
+      EPOCH: Number.MAX_SAFE_INTEGER, // BP03
+      MAX_BLOBS_PER_BLOCK: 72,
+    },
+  ],
 };

@@ -1,3 +1,4 @@
+import {createChainForkConfig, defaultChainConfig} from "@lodestar/config";
 import {config} from "@lodestar/config/default";
 import {ProtoBlock} from "@lodestar/fork-choice";
 import {ForkName, ForkPostDeneb} from "@lodestar/params";
@@ -194,6 +195,14 @@ describe("gossip block validation", () => {
   });
 
   it("deneb - TOO_MANY_KZG_COMMITMENTS", async () => {
+    const cfg = createChainForkConfig({
+      ...defaultChainConfig,
+      ALTAIR_FORK_EPOCH: 0,
+      BELLATRIX_FORK_EPOCH: 0,
+      CAPELLA_FORK_EPOCH: 0,
+      DENEB_FORK_EPOCH: 0,
+    });
+
     // Return not known for proposed block
     forkChoice.getBlockHex.mockReturnValueOnce(null);
     // Returned parent block is latter than proposed block
@@ -209,12 +218,20 @@ describe("gossip block validation", () => {
     (job as SignedBeaconBlock<ForkPostDeneb>).message.body.blobKzgCommitments.push(new Uint8Array([0]));
 
     await expectRejectedWithLodestarError(
-      validateGossipBlock(config, chain, job, ForkName.deneb),
+      validateGossipBlock(cfg, chain, job, ForkName.deneb),
       BlockErrorCode.TOO_MANY_KZG_COMMITMENTS
     );
   });
 
   it("deneb - valid", async () => {
+    const cfg = createChainForkConfig({
+      ...defaultChainConfig,
+      ALTAIR_FORK_EPOCH: 0,
+      BELLATRIX_FORK_EPOCH: 0,
+      CAPELLA_FORK_EPOCH: 0,
+      DENEB_FORK_EPOCH: 0,
+    });
+
     // Return not known for proposed block
     forkChoice.getBlockHex.mockReturnValueOnce(null);
     // Returned parent block is latter than proposed block
@@ -228,6 +245,6 @@ describe("gossip block validation", () => {
     vi.spyOn(state.epochCtx, "getBeaconProposer").mockReturnValue(proposerIndex);
     // Keep number of kzg commitments as is so it stays within the limit
 
-    await validateGossipBlock(config, chain, job, ForkName.deneb);
+    await validateGossipBlock(cfg, chain, job, ForkName.deneb);
   });
 });

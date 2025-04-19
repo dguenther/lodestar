@@ -88,7 +88,7 @@ export type ChainConfig = {
   NODE_CUSTODY_REQUIREMENT: number;
   VALIDATOR_CUSTODY_REQUIREMENT: number;
   BALANCE_PER_ADDITIONAL_CUSTODY_GROUP: number;
-  MAX_BLOBS_PER_BLOCK_FULU: number;
+  BLOB_SCHEDULE: {EPOCH: number; MAX_BLOBS_PER_BLOCK: number}[];
 };
 
 export const chainConfigTypes: SpecTypes<ChainConfig> = {
@@ -169,11 +169,11 @@ export const chainConfigTypes: SpecTypes<ChainConfig> = {
   NODE_CUSTODY_REQUIREMENT: "number",
   VALIDATOR_CUSTODY_REQUIREMENT: "number",
   BALANCE_PER_ADDITIONAL_CUSTODY_GROUP: "number",
-  MAX_BLOBS_PER_BLOCK_FULU: "number",
+  BLOB_SCHEDULE: "blobschedule",
 };
 
 /** Allows values in a Spec file */
-export type SpecValue = number | bigint | Uint8Array | string;
+export type SpecValue = number | bigint | Uint8Array | string | Array<Record<string, SpecValue>>;
 
 /** Type value name of each spec field. Numbers are ignored since they are the most common */
 export type SpecValueType<V extends SpecValue> = V extends number
@@ -184,7 +184,9 @@ export type SpecValueType<V extends SpecValue> = V extends number
       ? "bytes"
       : V extends string
         ? "string"
-        : never;
+        : V extends Array<Record<string, SpecValue>>
+          ? "blobschedule"
+          : never;
 
 /** All possible type names for a SpecValue */
 export type SpecValueTypeName = SpecValueType<SpecValue>;

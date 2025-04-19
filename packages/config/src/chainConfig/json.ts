@@ -45,6 +45,7 @@ export function toSpecValueTypeName(value: SpecValue): SpecValueTypeName {
   if (typeof value === "number") return "number";
   if (typeof value === "bigint") return "bigint";
   if (typeof value === "string") return "string";
+  if (Array.isArray(value)) return "blobschedule";
   throw Error(`Unknown value type ${value}`);
 }
 
@@ -76,6 +77,20 @@ export function serializeSpecValue(value: SpecValue, typeName: SpecValueTypeName
         throw Error(`Invalid value ${value.toString()} expected string`);
       }
       return value;
+
+    case "blobschedule":
+      if (!Array.isArray(value)) {
+        throw Error(`Invalid value ${value.toString()} expected Array`);
+      }
+      return JSON.stringify(
+        value.map((obj) => {
+          const result: Record<string, string> = {};
+          for (const [key, val] of Object.entries(obj)) {
+            result[key] = serializeSpecValue(val, toSpecValueTypeName(val));
+          }
+          return result;
+        })
+      );
   }
 }
 
@@ -99,5 +114,33 @@ export function deserializeSpecValue(valueStr: unknown, typeName: SpecValueTypeN
 
     case "string":
       return valueStr;
+
+    case "blobschedule": {
+      try {
+        const parsedJson = JSON.parse(valueStr);
+        if (!Array.isArray(parsedJson)) {
+          throw Error(`Invalid ${keyName} value, expected array but got ${typeof parsedJson}`);
+        }
+        return parsedJson.map((item) => {
+          const result: Record<string, SpecValue> = {};
+          for (const [key, val] of Object.entries(item)) {
+            if (typeof val !== "string") {
+              throw Error(`Invalid ${keyName}.${key} value ${val as string}, expected string`);
+            }
+
+            if (key === "EPOCH") {
+              result[key] = parseInt(val, 10);
+            } else if (key === "MAX_BLOBS_PER_BLOCK") {
+              result[key] = parseInt(val, 10);
+            } else {
+              throw new Error("Unexpected key in blob schedule");
+            }
+          }
+          return result;
+        });
+      } catch (e) {
+        throw Error(`Invalid ${keyName} value '${valueStr}', failed to parse as JSON: ${(e as Error).message}`);
+      }
+    }
   }
 }

@@ -124,5 +124,18 @@ export const chainConfig: ChainConfig = {
   NODE_CUSTODY_REQUIREMENT: 1,
   VALIDATOR_CUSTODY_REQUIREMENT: 8,
   BALANCE_PER_ADDITIONAL_CUSTODY_GROUP: 32000000000,
-  MAX_BLOBS_PER_BLOCK_FULU: 12,
+  BLOB_SCHEDULE: [
+    {
+      EPOCH: Infinity,
+      MAX_BLOBS_PER_BLOCK: 12, // BP01
+    },
+    {
+      EPOCH: Infinity,
+      MAX_BLOBS_PER_BLOCK: 15, // BP02
+    },
+    {
+      EPOCH: Infinity,
+      MAX_BLOBS_PER_BLOCK: 18, // BP03
+    },
+  ],
 };

@@ -138,15 +138,29 @@ export function createForkConfig(config: ChainConfig): ForkConfig {
       }
       return sszTypesFor(forkName);
     },
-    getMaxBlobsPerBlock(fork: ForkName): number {
-      switch (fork) {
-        case ForkName.fulu:
-          return config.MAX_BLOBS_PER_BLOCK_FULU;
-        case ForkName.electra:
-          return config.MAX_BLOBS_PER_BLOCK_ELECTRA;
-        default:
-          return config.MAX_BLOBS_PER_BLOCK;
+    getMaxBlobsPerBlock(epoch: Epoch): number {
+      if (config.BLOB_SCHEDULE && Array.isArray(config.BLOB_SCHEDULE) && config.BLOB_SCHEDULE.length > 0) {
+        // Find the entry in BLOB_SCHEDULE that applies to the current epoch
+        // Sort in descending order of epochs to find the latest applicable schedule
+        const scheduleEntries = [...config.BLOB_SCHEDULE].sort((a, b) => b.EPOCH - a.EPOCH);
+
+        for (const entry of scheduleEntries) {
+          if (epoch >= entry.EPOCH) {
+            return entry.MAX_BLOBS_PER_BLOCK;
+          }
+        }
       }
+
+      // Fall back to the static configuration if no BLOB_SCHEDULE entry applies
+      // Get the fork name for this epoch
+      const forkInfo = this.getForkInfoAtEpoch(epoch);
+      if (isForkPostElectra(forkInfo.name)) {
+        return config.MAX_BLOBS_PER_BLOCK_ELECTRA;
+      }
+      if (isForkPostDeneb(forkInfo.name)) {
+        return config.MAX_BLOBS_PER_BLOCK;
+      }
+      return 0;
     },
     getMaxRequestBlobSidecars(fork: ForkName): number {
       return isForkPostElectra(fork) ? config.MAX_REQUEST_BLOB_SIDECARS_ELECTRA : config.MAX_REQUEST_BLOB_SIDECARS;
