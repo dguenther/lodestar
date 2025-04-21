@@ -29,6 +29,7 @@ import {
 } from "@lodestar/types";
 import {sleep} from "@lodestar/utils";
 import {ChainEvent, IBeaconChain} from "../chain/index.js";
+import {computeSubnetForDataColumnSidecar} from "../chain/validation/dataColumnSidecar.js";
 import {IBeaconDb} from "../db/interface.js";
 import {Metrics, RegistryMetricCreator} from "../metrics/index.js";
 import {IClock} from "../util/clock.js";
@@ -56,7 +57,6 @@ import {
 import {collectSequentialBlocksInRange} from "./reqresp/utils/collectSequentialBlocksInRange.js";
 import {CommitteeSubscription, NodeId} from "./subnets/index.js";
 import {isPublishToZeroPeersError} from "./util.js";
-import {computeSubnetForDataColumnSidecar} from "../chain/validation/dataColumnSidecar.js";
 
 type NetworkModules = {
   opts: NetworkOptions;

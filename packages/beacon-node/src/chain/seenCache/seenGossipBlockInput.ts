@@ -2,10 +2,11 @@ import {toHexString} from "@chainsafe/ssz";
 import {ChainForkConfig} from "@lodestar/config";
 import {ForkName, NUMBER_OF_COLUMNS, isForkPostDeneb} from "@lodestar/params";
 import {RootHex, SignedBeaconBlock, deneb, fulu, ssz} from "@lodestar/types";
-import {pruneSetToMax} from "@lodestar/utils";
+import {pruneSetToMax, toRootHex} from "@lodestar/utils";
 
 import {IExecutionEngine} from "../../execution/index.js";
 import {Metrics} from "../../metrics/index.js";
+import {sszDeserialize} from "../../network/gossip/topic.js";
 import {kzgCommitmentToVersionedHash} from "../../util/blobs.js";
 import {
   CustodyConfig,
@@ -31,6 +32,8 @@ import {
   getBlockInputDataColumns,
 } from "../blocks/types.js";
 import {ChainEvent, ChainEventEmitter} from "../emitter.js";
+import {DataColumnSidecarErrorCode, DataColumnSidecarGossipError} from "../errors/dataColumnSidecarError.js";
+import {GossipAction} from "../errors/gossipValidation.js";
 
 export enum BlockInputAvailabilitySource {
   GOSSIP = "gossip",
@@ -107,6 +110,34 @@ export class SeenGossipBlockInput {
     return this.blockInputCache.has(blockRoot);
   }
 
+  /**
+   * Intended to be used for gossip validation, specifically this check:
+   * [IGNORE] The sidecar is the first sidecar for the tuple (block_header.slot, block_header.proposer_index,
+   *          sidecar.index) with valid header signature, sidecar inclusion proof, and kzg proof
+   */
+  hasDataColumnSidecar(sidecar: fulu.DataColumnSidecar) {
+    const blockRoot = ssz.phase0.BeaconBlockHeader.hashTreeRoot(sidecar.signedBlockHeader.message);
+    const blockRootHex = toHexString(blockRoot);
+
+    const blockCache = this.blockInputCache.get(blockRootHex);
+    if (blockCache === undefined) {
+      return false;
+    }
+    if (blockCache.cachedData === undefined || blockCache.cachedData.fork !== ForkName.fulu) {
+      return false;
+    }
+    const existingSidecar = blockCache.cachedData.dataColumnsCache.get(sidecar.index);
+    if (!existingSidecar) {
+      return false;
+    }
+    return (
+      sidecar.signedBlockHeader.message.slot === existingSidecar.dataColumn.signedBlockHeader.message.slot &&
+      sidecar.index === existingSidecar.dataColumn.index &&
+      sidecar.signedBlockHeader.message.proposerIndex ===
+        existingSidecar.dataColumn.signedBlockHeader.message.proposerIndex
+    );
+  }
+
   getGossipBlockInput(
     config: ChainForkConfig,
     gossipedInput: GossipedBlockInput,
@@ -147,10 +178,17 @@ export class SeenGossipBlockInput {
       blockHex = toHexString(blockRoot);
       blockCache = this.blockInputCache.get(blockHex) ?? getEmptyBlockInputCacheEntry(fork, ++this.globalCacheId);
       if (blockCache.cachedData?.fork !== ForkName.fulu) {
-        throw Error(`blob data at non fulu fork=${blockCache.fork}`);
+        throw Error(`data column data at non fulu fork=${blockCache.fork}`);
       }
 
-      // TODO: freetheblobs check if its the same blob or a duplicate and throw/take actions
+      if (this.hasDataColumnSidecar(dataColumnSidecar)) {
+        throw new DataColumnSidecarGossipError(GossipAction.IGNORE, {
+          code: DataColumnSidecarErrorCode.ALREADY_KNOWN,
+          slot: dataColumnSidecar.signedBlockHeader.message.slot,
+          columnIdx: dataColumnSidecar.index,
+        });
+      }
+
       blockCache.cachedData?.dataColumnsCache.set(dataColumnSidecar.index, {
         dataColumn: dataColumnSidecar,
         // easily splice out the unsigned message as blob is a fixed length type

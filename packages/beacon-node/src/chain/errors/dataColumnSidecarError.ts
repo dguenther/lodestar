@@ -9,6 +9,7 @@ export enum DataColumnSidecarErrorCode {
   INVALID_KZG_PROOF = "DATA_COLUMN_SIDECAR_ERROR_INVALID_KZG_PROOF",
 
   // following errors are adapted from the block errors
+  ALREADY_KNOWN = "DATA_COLUMN_SIDECAR_ERROR_ALREADY_KNOWN",
   FUTURE_SLOT = "DATA_COLUMN_SIDECAR_ERROR_FUTURE_SLOT",
   WOULD_REVERT_FINALIZED_SLOT = "DATA_COLUMN_SIDECAR_ERROR_WOULD_REVERT_FINALIZED_SLOT",
   PARENT_UNKNOWN = "DATA_COLUMN_SIDECAR_ERROR_PARENT_UNKNOWN",
@@ -28,6 +29,7 @@ export type DataColumnSidecarErrorType =
       proofsLength: number;
     }
   | {code: DataColumnSidecarErrorCode.INVALID_SUBNET; columnIdx: number; gossipSubnet: SubnetID}
+  | {code: DataColumnSidecarErrorCode.ALREADY_KNOWN; columnIdx: number; slot: Slot}
   | {code: DataColumnSidecarErrorCode.FUTURE_SLOT; blockSlot: Slot; currentSlot: Slot}
   | {code: DataColumnSidecarErrorCode.WOULD_REVERT_FINALIZED_SLOT; blockSlot: Slot; finalizedSlot: Slot}
   | {code: DataColumnSidecarErrorCode.PARENT_UNKNOWN; parentRoot: RootHex}
