@@ -128,7 +128,10 @@ export function getValidatorsCustodyRequirement(
   }, 0);
 
   const count = Math.floor(totalNodeEffectiveBalance / config.BALANCE_PER_ADDITIONAL_CUSTODY_GROUP);
-  return Math.min(Math.max(count, config.VALIDATOR_CUSTODY_REQUIREMENT), NUMBER_OF_CUSTODY_GROUPS);
+  return Math.max(
+    Math.min(Math.max(count, config.VALIDATOR_CUSTODY_REQUIREMENT), NUMBER_OF_CUSTODY_GROUPS),
+    config.NODE_CUSTODY_REQUIREMENT
+  );
 }
 
 /**
