@@ -107,8 +107,11 @@ export async function validateGossipDataColumnSidecar(
   // 5) [REJECT] The proposer signature of sidecar.signed_block_header, is valid with respect to the block_header.proposer_index pubkey.
   const signatureSet = getBlockHeaderProposerSignatureSet(blockState, dataColumnSidecar.signedBlockHeader);
   // Don't batch so verification is not delayed
-  // TODO: (@matthewkeil) Should this and the blob signature be done main thread like the block?  Talk with @twoeths
-  if (!(await chain.bls.verifySignatureSets([signatureSet], {verifyOnMainThread: true}))) {
+  if (
+    !(await chain.bls.verifySignatureSets([signatureSet], {
+      verifyOnMainThread: blockHeader.slot > chain.forkChoice.getHead().slot,
+    }))
+  ) {
     throw new DataColumnSidecarGossipError(GossipAction.REJECT, {
       code: DataColumnSidecarErrorCode.PROPOSAL_SIGNATURE_INVALID,
     });
