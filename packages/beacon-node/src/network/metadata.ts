@@ -95,6 +95,9 @@ export class MetadataController {
   }
 
   set cgc(cgc: number) {
+    if (cgc === this._metadata.cgc) {
+      return;
+    }
     this.onSetValue(ENRKey.cgc, serializeCgc(cgc));
     this._metadata.cgc = cgc;
   }
