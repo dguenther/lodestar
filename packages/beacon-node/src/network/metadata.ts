@@ -62,9 +62,8 @@ export class MetadataController {
       this.onSetValue(ENRKey.syncnets, ssz.phase0.AttestationSubnets.serialize(this._metadata.syncnets));
     }
 
-    if (config.getForkSeq(computeStartSlotAtEpoch(currentEpoch)) >= ForkSeq.fulu) {
-      this.onSetValue(ENRKey.cgc, serializeCgc(this._metadata.cgc));
-    }
+    // Set CGC regardless of fork. It may be useful to clients before Fulu, and will be ignored otherwise.
+    this.onSetValue(ENRKey.cgc, serializeCgc(this._metadata.cgc));
   }
 
   get seqNumber(): bigint {
