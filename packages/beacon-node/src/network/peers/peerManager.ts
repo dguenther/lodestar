@@ -831,4 +831,8 @@ export class PeerManager {
     metrics.peers.set(total);
     metrics.peersSync.set(syncPeers);
   }
+
+  async getPeerENR(peerIdStr: string): Promise<string | undefined> {
+    return this.discovery?.getPeerENR(peerIdStr);
+  }
 }

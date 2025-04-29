@@ -413,16 +413,32 @@ export class NetworkCore implements INetworkCore {
 
   async dumpPeer(peerIdStr: string): Promise<routes.lodestar.LodestarNodePeer | undefined> {
     const connections = this.getConnectionsByPeer().get(peerIdStr);
-    return connections
-      ? {...formatNodePeer(peerIdStr, connections), agentVersion: this.peersData.getAgentVersion(peerIdStr)}
-      : undefined;
+    if (!connections) return undefined;
+
+    // Get ENR from peer discovery if available
+    const enr = await this.peerManager.getPeerENR(peerIdStr);
+
+    return {
+      ...formatNodePeer(peerIdStr, connections, enr),
+      agentVersion: this.peersData.getAgentVersion(peerIdStr),
+    };
   }
 
   async dumpPeers(): Promise<routes.lodestar.LodestarNodePeer[]> {
-    return Array.from(this.getConnectionsByPeer().entries()).map(([peerIdStr, connections]) => ({
-      ...formatNodePeer(peerIdStr, connections),
-      agentVersion: this.peersData.getAgentVersion(peerIdStr),
-    }));
+    const peerEntries = Array.from(this.getConnectionsByPeer().entries());
+    const peers: routes.lodestar.LodestarNodePeer[] = [];
+
+    for (const [peerIdStr, connections] of peerEntries) {
+      // Get ENR from peer discovery if available
+      const enr = await this.peerManager.getPeerENR(peerIdStr);
+
+      peers.push({
+        ...formatNodePeer(peerIdStr, connections, enr),
+        agentVersion: this.peersData.getAgentVersion(peerIdStr),
+      });
+    }
+
+    return peers;
   }
 
   async dumpPeerScoreStats(): Promise<PeerScoreStats> {

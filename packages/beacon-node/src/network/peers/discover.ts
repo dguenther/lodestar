@@ -628,6 +628,17 @@ export class PeerDiscovery {
     const connections = getConnectionsMap(this.libp2p).get(peerIdStr);
     return Boolean(connections?.some((connection) => connection.status === "open"));
   }
+
+  async getPeerENR(peerIdStr: string): Promise<string | undefined> {
+    const kadValues = await this.discv5.kadValues();
+    for (const enr of kadValues) {
+      const enrPeerId = await enr.peerId();
+      if (enrPeerId.toString() === peerIdStr) {
+        return enr.encodeTxt();
+      }
+    }
+    return undefined;
+  }
 }
 
 /**
