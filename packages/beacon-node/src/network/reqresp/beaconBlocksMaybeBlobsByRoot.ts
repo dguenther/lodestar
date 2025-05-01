@@ -69,7 +69,7 @@ export async function beaconBlocksMaybeBlobsByRoot(
   let pendingDataColumns = null;
 
   const blobIdentifiers: deneb.BlobIdentifier[] = [];
-  const dataColumnIdentifiers: fulu.DataColumnIdentifier[] = [];
+  const dataColumnsByRootIdentifiers: fulu.DataColumnsByRootIdentifier[] = [];
 
   let prevFork = null;
   for (const block of allBlocks) {
@@ -95,8 +95,11 @@ export async function beaconBlocksMaybeBlobsByRoot(
       dataColumnsDataBlocks.push(block);
       const blobKzgCommitmentsLen = (block.data.message.body as deneb.BeaconBlockBody).blobKzgCommitments.length;
       const custodyColumnIndexes = blobKzgCommitmentsLen > 0 ? columns : [];
-      for (const columnIndex of custodyColumnIndexes) {
-        dataColumnIdentifiers.push({blockRoot, index: columnIndex});
+      if (custodyColumnIndexes.length > 0) {
+        dataColumnsByRootIdentifiers.push({
+          blockRoot,
+          columns: custodyColumnIndexes,
+        });
       }
     } else {
       throw Error(`Invalid fork=${fork} in beaconBlocksMaybeBlobsByRoot`);
@@ -139,11 +142,13 @@ export async function beaconBlocksMaybeBlobsByRoot(
       ...(partialDownload
         ? {blocks: partialDownload.blocks.length, pendingDataColumns: partialDownload.pendingDataColumns.join(" ")}
         : {blocks: null, pendingDataColumns: null}),
-      dataColumnIdentifiers: dataColumnIdentifiers.map((did) => did.index).join(" "),
+      dataColumnIdentifiers: dataColumnsByRootIdentifiers
+        .map((id) => `${id.blockRoot}: ${id.columns.join(" ")}`)
+        .join(" "),
       peerClient,
     });
-    if (dataColumnIdentifiers.length > 0) {
-      allDataColumnsSidecars = await network.sendDataColumnSidecarsByRoot(peerId, dataColumnIdentifiers);
+    if (dataColumnsByRootIdentifiers.length > 0) {
+      allDataColumnsSidecars = await network.sendDataColumnSidecarsByRoot(peerId, dataColumnsByRootIdentifiers);
     } else {
       if (partialDownload !== null) {
         return partialDownload;
@@ -513,7 +518,6 @@ export async function unavailableBeaconBlobsByRootPostFulu(
   const {dataColumnsCache, resolveAvailability} = cachedData as CachedDataColumns;
 
   // resolve missing blobs
-  const dataColumnIdentifiers: fulu.DataColumnIdentifier[] = [];
   const slot = block.message.slot;
   const blockRoot = config.getForkTypes(slot).BeaconBlock.hashTreeRoot(block.message);
 
@@ -577,13 +581,9 @@ export async function unavailableBeaconBlobsByRootPostFulu(
       return unavailableBlockInput;
     }
 
-    for (const columnIndex of columns) {
-      dataColumnIdentifiers.push({blockRoot, index: columnIndex});
-    }
-
     let allDataColumnSidecars: fulu.DataColumnSidecar[];
-    if (dataColumnIdentifiers.length > 0) {
-      allDataColumnSidecars = await network.sendDataColumnSidecarsByRoot(peerId, dataColumnIdentifiers);
+    if (columns.length > 0) {
+      allDataColumnSidecars = await network.sendDataColumnSidecarsByRoot(peerId, [{blockRoot, columns}]);
     } else {
       allDataColumnSidecars = [];
     }

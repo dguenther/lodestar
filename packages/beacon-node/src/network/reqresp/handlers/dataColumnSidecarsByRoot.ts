@@ -26,18 +26,8 @@ export async function* onDataColumnSidecarsByRoot(
     chain.config.FULU_FORK_EPOCH
   );
 
-  // In sidecars by root request, it can be expected that sidecar requests will be come
-  // clustured by blockroots, and this helps us save db lookups once we load sidecars
-  // for a root
-  let lastFetchedSideCars: {
-    blockRoot: RootHex;
-    bytes: Uint8Array;
-    dataColumnsIndex: Uint8Array;
-    columnsSize: number;
-  } | null = null;
-
-  for (const dataColumnIdentifier of requestBody) {
-    const {blockRoot, index} = dataColumnIdentifier;
+  for (const dataColumnsByRootIdentifier of requestBody) {
+    const {blockRoot, columns} = dataColumnsByRootIdentifier;
     const blockRootHex = toHex(blockRoot);
     const block = chain.forkChoice.getBlockHex(blockRootHex);
 
@@ -50,61 +40,57 @@ export async function* onDataColumnSidecarsByRoot(
       continue;
     }
 
-    // Check if we need to load sidecars for a new block root
-    if (lastFetchedSideCars === null || lastFetchedSideCars.blockRoot !== blockRootHex) {
-      const dataColumnSidecarsBytesWrapped = await db.dataColumnSidecars.getBinary(fromHex(block.blockRoot));
-      if (!dataColumnSidecarsBytesWrapped) {
-        // Handle the same to onBeaconBlocksByRange
-        throw new ResponseError(RespStatus.SERVER_ERROR, `No item for root ${block.blockRoot} slot ${block.slot}`);
+    const dataColumnSidecarsBytesWrapped = await db.dataColumnSidecars.getBinary(fromHex(block.blockRoot));
+    if (!dataColumnSidecarsBytesWrapped) {
+      // Handle the same to onBeaconBlocksByRange
+      throw new ResponseError(RespStatus.SERVER_ERROR, `No item for root ${block.blockRoot} slot ${block.slot}`);
+    }
+
+    const retrivedColumnsLen = ssz.Uint8.deserialize(
+      dataColumnSidecarsBytesWrapped.slice(NUM_COLUMNS_IN_WRAPPER_INDEX, COLUMN_SIZE_IN_WRAPPER_INDEX)
+    );
+    const retrievedColumnsSizeBytes = dataColumnSidecarsBytesWrapped.slice(
+      COLUMN_SIZE_IN_WRAPPER_INDEX,
+      CUSTODY_COLUMNS_IN_IN_WRAPPER_INDEX
+    );
+    const columnsSize = ssz.UintNum64.deserialize(retrievedColumnsSizeBytes);
+    const dataColumnSidecarsBytes = dataColumnSidecarsBytesWrapped.slice(
+      DATA_COLUMN_SIDECARS_IN_WRAPPER_INDEX + 4 * retrivedColumnsLen
+    );
+
+    const dataColumnsIndex = dataColumnSidecarsBytesWrapped.slice(
+      CUSTODY_COLUMNS_IN_IN_WRAPPER_INDEX,
+      CUSTODY_COLUMNS_IN_IN_WRAPPER_INDEX + NUMBER_OF_COLUMNS
+    );
+
+    // const storedColumns = Array.from({length: NUMBER_OF_COLUMNS}, (_v, i) => i).filter(
+    //   (i) => dataColumnsIndex[i] > 0
+    // );
+    // const columnsLen = dataColumnSidecarsBytes.length / columnsSize;
+    // console.log(
+    //   `onDataColumnSidecarsByRoot: slot=${block.slot} columnsSize=${columnsSize} storedColumnsLen=${columnsLen} retrivedColumnsLen=${retrivedColumnsLen} dataColumnSidecarsBytesWrapped=${dataColumnSidecarsBytesWrapped.length} storedColumns=${storedColumns.join(" ")}`
+    // );
+
+    for (const index of columns) {
+      const dataIndex = (dataColumnsIndex[index] ?? 0) - 1;
+      if (dataIndex < 0) {
+        throw new ResponseError(RespStatus.SERVER_ERROR, `dataColumnSidecar index=${index} not custodied`);
       }
 
-      const retrivedColumnsLen = ssz.Uint8.deserialize(
-        dataColumnSidecarsBytesWrapped.slice(NUM_COLUMNS_IN_WRAPPER_INDEX, COLUMN_SIZE_IN_WRAPPER_INDEX)
+      const dataColumnSidecarBytes = dataColumnSidecarsBytes.slice(
+        dataIndex * columnsSize,
+        (dataIndex + 1) * columnsSize
       );
-      const retrievedColumnsSizeBytes = dataColumnSidecarsBytesWrapped.slice(
-        COLUMN_SIZE_IN_WRAPPER_INDEX,
-        CUSTODY_COLUMNS_IN_IN_WRAPPER_INDEX
-      );
-      const columnsSize = ssz.UintNum64.deserialize(retrievedColumnsSizeBytes);
-      const dataColumnSidecarsBytes = dataColumnSidecarsBytesWrapped.slice(
-        DATA_COLUMN_SIDECARS_IN_WRAPPER_INDEX + 4 * retrivedColumnsLen
-      );
+      if (dataColumnSidecarBytes.length !== columnsSize) {
+        throw Error(
+          `Inconsistent state, dataColumnSidecar blockRoot=${blockRootHex} index=${index} dataColumnSidecarBytes=${dataColumnSidecarBytes.length} expected=${columnsSize}`
+        );
+      }
 
-      const dataColumnsIndex = dataColumnSidecarsBytesWrapped.slice(
-        CUSTODY_COLUMNS_IN_IN_WRAPPER_INDEX,
-        CUSTODY_COLUMNS_IN_IN_WRAPPER_INDEX + NUMBER_OF_COLUMNS
-      );
-
-      // const storedColumns = Array.from({length: NUMBER_OF_COLUMNS}, (_v, i) => i).filter(
-      //   (i) => dataColumnsIndex[i] > 0
-      // );
-      // const columnsLen = dataColumnSidecarsBytes.length / columnsSize;
-      // console.log(
-      //   `onDataColumnSidecarsByRoot: slot=${block.slot} columnsSize=${columnsSize} storedColumnsLen=${columnsLen} retrivedColumnsLen=${retrivedColumnsLen} dataColumnSidecarsBytesWrapped=${dataColumnSidecarsBytesWrapped.length} storedColumns=${storedColumns.join(" ")}`
-      // );
-
-      lastFetchedSideCars = {blockRoot: blockRootHex, bytes: dataColumnSidecarsBytes, columnsSize, dataColumnsIndex};
+      yield {
+        data: dataColumnSidecarBytes,
+        fork: chain.config.getForkName(block.slot),
+      };
     }
-
-    const dataIndex = (lastFetchedSideCars.dataColumnsIndex[index] ?? 0) - 1;
-    if (dataIndex < 0) {
-      throw new ResponseError(RespStatus.SERVER_ERROR, `dataColumnSidecar index=${index} not custodied`);
-    }
-    const {columnsSize} = lastFetchedSideCars;
-
-    const dataColumnSidecarBytes = lastFetchedSideCars.bytes.slice(
-      dataIndex * columnsSize,
-      (dataIndex + 1) * columnsSize
-    );
-    if (dataColumnSidecarBytes.length !== columnsSize) {
-      throw Error(
-        `Inconsistent state, dataColumnSidecar blockRoot=${blockRootHex} index=${index} dataColumnSidecarBytes=${dataColumnSidecarBytes.length} expected=${columnsSize}`
-      );
-    }
-
-    yield {
-      data: dataColumnSidecarBytes,
-      fork: chain.config.getForkName(block.slot),
-    };
   }
 }

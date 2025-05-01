@@ -5,6 +5,7 @@ import {
   FIELD_ELEMENTS_PER_EXT_BLOB,
   KZG_COMMITMENTS_INCLUSION_PROOF_DEPTH,
   MAX_BLOB_COMMITMENTS_PER_BLOCK,
+  MAX_REQUEST_BLOCKS_DENEB,
   MAX_REQUEST_DATA_COLUMN_SIDECARS,
   NUMBER_OF_COLUMNS,
 } from "@lodestar/params";
@@ -64,17 +65,17 @@ export const MatrixEntry = new ContainerType(
 // ReqResp types
 // =============
 
-export const DataColumnIdentifier = new ContainerType(
+export const DataColumnsByRootIdentifier = new ContainerType(
   {
     blockRoot: Root,
-    index: ColumnIndex,
+    columns: new ListBasicType(ColumnIndex, NUMBER_OF_COLUMNS),
   },
-  {typeName: "DataColumnIdentifier", jsonCase: "eth2"}
+  {typeName: "DataColumnsByRootIdentifier", jsonCase: "eth2"}
 );
 
 export const DataColumnSidecarsByRootRequest = new ListCompositeType(
-  DataColumnIdentifier,
-  MAX_REQUEST_DATA_COLUMN_SIDECARS
+  DataColumnsByRootIdentifier,
+  MAX_REQUEST_BLOCKS_DENEB
 );
 
 export const DataColumnSidecarsByRangeRequest = new ContainerType(
