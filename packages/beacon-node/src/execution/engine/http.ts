@@ -31,6 +31,7 @@ import {
 } from "./interface.js";
 import {PayloadIdCache} from "./payloadIdCache.js";
 import {
+  BlobAndProofV2Rpc,
   EngineApiRpcParamTypes,
   EngineApiRpcReturnTypes,
   ExecutionPayloadBody,
@@ -557,7 +558,33 @@ export class ExecutionEngineHttp implements IExecutionEngine {
         const castResponse = response as EngineApiRpcReturnTypes[typeof method];
         // TODO: Spec says to return null if any blob is not found, but reth and nethermind return empty arrays as of peerdas-devnet-6
         if (castResponse === null || castResponse.length === 0) return null;
-        return castResponse.map(deserializeBlobAndProofsV2);
+        try {
+          return castResponse.map(deserializeBlobAndProofsV2);
+        } catch (e) {
+          if (!Array.isArray(castResponse)) {
+            this.logger.error("Expected Array");
+          }
+          this.logger.error(
+            `keys: ${castResponse
+              .map((r: BlobAndProofV2Rpc) => {
+                if (r === null) {
+                  return "null";
+                }
+                if (typeof r !== "object") {
+                  return `${typeof r}`;
+                }
+
+                return Object.keys(r)
+                  .map(
+                    (k) =>
+                      `${k}: ${r[k as keyof BlobAndProofV2Rpc] === null ? "null" : typeof r[k as keyof BlobAndProofV2Rpc]}`
+                  )
+                  .join(", ");
+              })
+              .join(" | ")}`
+          );
+          throw e;
+        }
       }
     }
   }
